@@ -1,4 +1,4 @@
-# User Authentication Verification Tool
+# AuthCheck - User Authentication Verification Tool
 
 A web application for verifying user account existence across multiple authentication sources (Okta, RADIUS, Active Directory, and others to be added).
 
@@ -37,7 +37,7 @@ FastAPI Backend
 ## Project Structure
 
 ```
-user-auth-verification/
+authcheck/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI app
@@ -71,7 +71,7 @@ user-auth-verification/
 
 1. **Clone and navigate to project**
    ```bash
-   cd user-auth-verification
+   cd authcheck
    ```
 
 2. **Create virtual environment**

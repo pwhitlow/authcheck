@@ -4,7 +4,7 @@
 
 ### 1. Install Dependencies
 ```bash
-cd user-auth-verification
+cd authcheck
 pip install -r requirements.txt
 ```
 

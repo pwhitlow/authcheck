@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 # Create FastAPI app
 app = FastAPI(
-    title="User Authentication Verification",
+    title="AuthCheck - User Authentication Verification",
     description="Verify user accounts across multiple authentication sources",
     version="1.0.0",
 )

@@ -1,8 +1,8 @@
 ================================================================================
-    USER AUTHENTICATION VERIFICATION TOOL - PROJECT STRUCTURE
+    AUTHCHECK - USER AUTHENTICATION VERIFICATION TOOL - PROJECT STRUCTURE
 ================================================================================
 
-user-auth-verification/
+authcheck/
 │
 ├── 📁 app/                          # Main application package
 │   ├── __init__.py                 # Package initialization

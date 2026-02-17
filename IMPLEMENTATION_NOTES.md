@@ -1,7 +1,7 @@
-# Implementation Notes
+# AuthCheck - Implementation Notes
 
 ## Overview
-This document provides detailed notes on the implementation of the User Authentication Verification Tool.
+This document provides detailed notes on the implementation of AuthCheck - the User Authentication Verification Tool.
 
 ## Completed Tasks
 
