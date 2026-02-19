@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 import os
 from pathlib import Path
 
-from app.routes import upload, query
+from app.routes import upload, query, comparison
 
 # Get the directory containing this file
 BASE_DIR = Path(__file__).resolve().parent
@@ -23,6 +23,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 # Include routers
 app.include_router(upload.router)
 app.include_router(query.router)
+app.include_router(comparison.router)
 
 
 @app.get("/")

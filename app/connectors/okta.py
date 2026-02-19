@@ -1,6 +1,6 @@
 import httpx
 import os
-from typing import Optional
+from typing import Optional, List
 from .base import BaseConnector
 
 
@@ -66,6 +66,87 @@ class OktaConnector(BaseConnector):
                     raise Exception(
                         f"Okta API error: {response.status_code} - {response.text}"
                     )
+
+        except httpx.TimeoutException:
+            raise TimeoutError("Okta API request timed out")
+        except httpx.ConnectError:
+            raise ConnectionError(f"Failed to connect to Okta at {self.org_url}")
+
+    async def get_all_users(self) -> List[str]:
+        """
+        Get list of all active users from Okta.
+
+        Returns:
+            List of usernames (profile.login values)
+
+        Raises:
+            Exception: On authentication or network errors
+        """
+        if not self.validate_config():
+            raise ValueError("Okta configuration is invalid or incomplete")
+
+        all_users = []
+        after = None
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                url = f"{self.org_url}/api/v1/users"
+                headers = {
+                    "Authorization": f"Bearer {self.api_token}",
+                    "Accept": "application/json",
+                }
+
+                while True:
+                    params = {
+                        "filter": 'status eq "ACTIVE"',
+                        "limit": 200,  # Max page size
+                    }
+                    if after:
+                        params["after"] = after
+
+                    response = await client.get(url, params=params, headers=headers)
+
+                    if response.status_code != 200:
+                        if response.status_code == 401:
+                            raise ValueError(
+                                "Okta authentication failed: Invalid API token"
+                            )
+                        elif response.status_code == 403:
+                            raise ValueError(
+                                "Okta authentication failed: Insufficient permissions"
+                            )
+                        else:
+                            raise Exception(
+                                f"Okta API error: {response.status_code} - {response.text}"
+                            )
+
+                    users = response.json()
+                    if not users:
+                        break
+
+                    # Extract login (username) from each user
+                    for user in users:
+                        login = user.get("profile", {}).get("login")
+                        if login:
+                            all_users.append(login)
+
+                    # Check for pagination (Okta uses Link header)
+                    link_header = response.headers.get("Link", "")
+                    if 'rel="next"' not in link_header:
+                        break
+
+                    # Extract 'after' cursor from Link header
+                    for link in link_header.split(","):
+                        if 'rel="next"' in link:
+                            # Extract URL and get 'after' parameter
+                            import re
+
+                            match = re.search(r'after=([^&>]+)', link)
+                            if match:
+                                after = match.group(1)
+                            break
+
+                return all_users
 
         except httpx.TimeoutException:
             raise TimeoutError("Okta API request timed out")

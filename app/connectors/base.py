@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 
 class BaseConnector(ABC):
@@ -26,6 +26,22 @@ class BaseConnector(ABC):
             True if user exists, False otherwise
         """
         pass
+
+    async def get_all_users(self) -> List[str]:
+        """
+        Get list of all users from this authentication source.
+
+        Optional method - override in subclass if enumeration is supported.
+
+        Returns:
+            List of usernames
+
+        Raises:
+            NotImplementedError: If this connector doesn't support enumeration
+        """
+        raise NotImplementedError(
+            f"{self.get_display_name()} connector does not support user enumeration"
+        )
 
     @abstractmethod
     def get_display_name(self) -> str:

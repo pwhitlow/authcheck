@@ -2,65 +2,225 @@
 
 {% block content %}
 <div id="app">
-    <h2 style="margin-bottom: 30px;">Upload User List</h2>
-
     <div id="alert-container"></div>
 
-    <div class="form-group">
-        <label for="csv-file">Select CSV File</label>
-        <input type="file" id="csv-file" accept=".csv" />
-        <small style="color: #666; margin-top: 5px; display: block;">
-            Format: CSV with usernames in the first column (optional header)
-        </small>
-    </div>
-
-    <div style="text-align: center; margin: 30px 0; color: #999;">
-        — or —
-    </div>
-
-    <div class="form-group">
-        <label for="remote-url">Fetch from Remote URL (Optional)</label>
-        <input
-            type="text"
-            id="remote-url"
-            placeholder="https://example.com/users.csv"
-        />
-        <small style="color: #666; margin-top: 5px; display: block;">
-            Leave blank to use CSV file above
-        </small>
-    </div>
-
-    <div class="button-group">
-        <button class="btn-primary" id="upload-btn" onclick="handleUpload()">
-            Upload & Parse
-        </button>
-        <button class="btn-secondary" id="verify-btn" onclick="handleVerify()" disabled>
-            Verify Users
-        </button>
-        <button class="btn-secondary" onclick="resetForm()">Reset</button>
-    </div>
-
-    <div id="users-list" style="display: none; margin-top: 30px;">
-        <h3>Loaded Users</h3>
-        <div
-            id="users-container"
+    <!-- Tabs for different modes -->
+    <div style="margin-bottom: 30px; border-bottom: 2px solid #ddd;">
+        <button
+            id="tab-compare"
+            class="tab-button active"
+            onclick="switchTab('compare')"
             style="
-                background: #f9f9f9;
-                padding: 15px;
-                border-radius: 4px;
-                max-height: 300px;
-                overflow-y: auto;
-                border: 1px solid #ddd;
+                background: none;
+                border: none;
+                padding: 12px 24px;
+                font-size: 16px;
+                cursor: pointer;
+                border-bottom: 3px solid #667eea;
+                color: #333;
+                margin-right: 20px;
+                font-weight: 500;
             "
-        ></div>
-        <small id="user-count" style="display: block; margin-top: 10px; color: #666;"></small>
+        >
+            📊 Compare All Users
+        </button>
+        <button
+            id="tab-verify"
+            class="tab-button"
+            onclick="switchTab('verify')"
+            style="
+                background: none;
+                border: none;
+                padding: 12px 24px;
+                font-size: 16px;
+                cursor: pointer;
+                border-bottom: 3px solid transparent;
+                color: #999;
+                margin-right: 20px;
+                font-weight: 500;
+            "
+        >
+            🔍 Verify Specific Users
+        </button>
     </div>
 
-    <div id="results-container" style="display: none; margin-top: 40px;"></div>
+    <!-- Compare All Users Tab -->
+    <div id="tab-content-compare" class="tab-content">
+        <h2>Compare Users Across All Systems</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            Query all available authentication sources and compare which users exist in each system.
+        </p>
+
+        <div class="button-group">
+            <button class="btn-primary" id="compare-btn" onclick="handleCompare()">
+                🚀 Start Comparison
+            </button>
+        </div>
+
+        <div id="comparison-results" style="display: none; margin-top: 40px;"></div>
+    </div>
+
+    <!-- Verify Specific Users Tab -->
+    <div id="tab-content-verify" class="tab-content" style="display: none;">
+        <h2 style="margin-bottom: 30px;">Upload User List for Verification</h2>
+
+        <div class="form-group">
+            <label for="csv-file">Select CSV File</label>
+            <input type="file" id="csv-file" accept=".csv" />
+            <small style="color: #666; margin-top: 5px; display: block;">
+                Format: CSV with usernames in the first column (optional header)
+            </small>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0; color: #999;">
+            — or —
+        </div>
+
+        <div class="form-group">
+            <label for="remote-url">Fetch from Remote URL (Optional)</label>
+            <input
+                type="text"
+                id="remote-url"
+                placeholder="https://example.com/users.csv"
+            />
+            <small style="color: #666; margin-top: 5px; display: block;">
+                Leave blank to use CSV file above
+            </small>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" id="upload-btn" onclick="handleUpload()">
+                Upload & Parse
+            </button>
+            <button class="btn-secondary" id="verify-btn" onclick="handleVerify()" disabled>
+                Verify Users
+            </button>
+            <button class="btn-secondary" onclick="resetForm()">Reset</button>
+        </div>
+
+        <div id="users-list" style="display: none; margin-top: 30px;">
+            <h3>Loaded Users</h3>
+            <div
+                id="users-container"
+                style="
+                    background: #f9f9f9;
+                    padding: 15px;
+                    border-radius: 4px;
+                    max-height: 300px;
+                    overflow-y: auto;
+                    border: 1px solid #ddd;
+                "
+            ></div>
+            <small id="user-count" style="display: block; margin-top: 10px; color: #666;"></small>
+        </div>
+
+        <div id="results-container" style="display: none; margin-top: 40px;"></div>
+    </div>
 </div>
+
+<style>
+    .tab-button.active {
+        border-bottom-color: #667eea !important;
+        color: #333 !important;
+    }
+
+    .comparison-grid {
+        overflow-x: auto;
+        margin: 20px 0;
+    }
+
+    .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 12px;
+        text-align: left;
+        border: 1px solid #e0e0e0;
+    }
+
+    .comparison-table th {
+        background: #f5f5f5;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+    }
+
+    .comparison-table tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .comparison-table tr:hover {
+        background: #f0f7ff;
+    }
+
+    .user-cell {
+        font-weight: 500;
+        color: #333;
+        min-width: 150px;
+    }
+
+    .found {
+        color: #28a745;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .not-found {
+        color: #dc3545;
+        text-align: center;
+    }
+
+    .stats-box {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .stat-card h3 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        opacity: 0.9;
+    }
+
+    .stat-card .number {
+        font-size: 32px;
+        font-weight: bold;
+    }
+
+    .stat-card.alt {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+</style>
 
 <script>
     let currentUsers = [];
+
+    function switchTab(tabName) {
+        // Hide all tabs
+        document.getElementById("tab-content-compare").style.display = "none";
+        document.getElementById("tab-content-verify").style.display = "none";
+
+        // Remove active class from all buttons
+        document.getElementById("tab-compare").classList.remove("active");
+        document.getElementById("tab-verify").classList.remove("active");
+
+        // Show selected tab
+        document.getElementById("tab-content-" + tabName).style.display = "block";
+        document.getElementById("tab-" + tabName).classList.add("active");
+    }
 
     function showAlert(message, type = "success") {
         const alertContainer = document.getElementById("alert-container");
@@ -73,6 +233,86 @@
             alert.remove();
         }, 5000);
     }
+
+    // ===== COMPARE ALL USERS =====
+
+    async function handleCompare() {
+        const compareBtn = document.getElementById("compare-btn");
+        compareBtn.disabled = true;
+        compareBtn.innerHTML = '<span class="loading"></span>Comparing...';
+
+        try {
+            const response = await fetch("/compare");
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Comparison failed");
+            }
+
+            const data = await response.json();
+            displayComparison(data);
+            showAlert("Comparison completed successfully", "success");
+        } catch (error) {
+            showAlert(`Error: ${error.message}`, "error");
+        } finally {
+            compareBtn.disabled = false;
+            compareBtn.innerHTML = "🚀 Start Comparison";
+        }
+    }
+
+    function displayComparison(data) {
+        const resultsContainer = document.getElementById("comparison-results");
+
+        // Build stats
+        let statsHtml =
+            '<div class="stats-box">' +
+            `<div class="stat-card"><h3>Total Users</h3><div class="number">${data.all_users.length}</div></div>`;
+
+        data.sources.forEach((source) => {
+            const count = data.source_counts[source];
+            statsHtml += `<div class="stat-card alt"><h3>${source.toUpperCase()}</h3><div class="number">${count}</div></div>`;
+        });
+
+        statsHtml += "</div>";
+
+        // Build comparison table
+        let tableHtml =
+            '<h3>User Comparison Matrix</h3>' +
+            '<p style="color: #666; margin-bottom: 15px;">✓ = Account exists in system</p>' +
+            '<div class="comparison-grid">' +
+            '<table class="comparison-table">' +
+            '<thead><tr><th>Username</th>';
+
+        data.sources.forEach((source) => {
+            tableHtml += `<th>${source}</th>`;
+        });
+
+        tableHtml += "</tr></thead><tbody>";
+
+        data.all_users.forEach((user) => {
+            tableHtml += `<tr><td class="user-cell">${user}</td>`;
+
+            data.sources.forEach((source) => {
+                const exists = data.user_sources[user][source];
+                const symbol = exists ? "✓" : "✗";
+                const className = exists ? "found" : "not-found";
+                tableHtml += `<td class="${className}">${symbol}</td>`;
+            });
+
+            tableHtml += "</tr>";
+        });
+
+        tableHtml +=
+            "</tbody></table></div>" +
+            '<small style="color: #666; display: block; margin-top: 15px;">Last updated: ' +
+            new Date(data.timestamp).toLocaleString() +
+            "</small>";
+
+        resultsContainer.innerHTML = statsHtml + tableHtml;
+        resultsContainer.style.display = "block";
+    }
+
+    // ===== VERIFY SPECIFIC USERS =====
 
     async function handleUpload() {
         const fileInput = document.getElementById("csv-file");
@@ -98,7 +338,6 @@
                     body: formData,
                 });
             } else {
-                // TODO: Implement remote fetch endpoint
                 showAlert(
                     "Remote fetch not yet implemented. Please upload a CSV file.",
                     "error"
@@ -190,8 +429,7 @@
         // Header row
         html += "<thead>";
         html += "<tr style='background: #f0f0f0; border-bottom: 2px solid #ddd;'>";
-        html +=
-            '<th style="padding: 12px; text-align: left; font-weight: 500;">Username</th>';
+        html += '<th style="padding: 12px; text-align: left; font-weight: 500;">Username</th>';
         data.sources.forEach((source) => {
             html += `<th style="padding: 12px; text-align: center; font-weight: 500;">${source}</th>`;
         });

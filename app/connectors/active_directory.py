@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Optional
+from typing import Optional, List
 from ldap3 import Server, Connection, ALL, Tls
 import ssl
 from .base import BaseConnector
@@ -143,6 +143,86 @@ class ActiveDirectoryConnector(BaseConnector):
                                 return True
 
                 return False
+
+            finally:
+                conn.unbind()
+
+        except Exception as e:
+            raise
+
+    async def get_all_users(self) -> List[str]:
+        """
+        Get list of all enabled users from Active Directory.
+
+        Returns:
+            List of usernames (sAMAccountName values)
+
+        Raises:
+            Exception: On LDAP connection or search errors
+        """
+        if not self.validate_config():
+            raise ValueError(
+                "Active Directory configuration is invalid or incomplete"
+            )
+
+        try:
+            # Run LDAP operations in thread pool
+            return await asyncio.to_thread(self._get_all_users_sync)
+        except Exception as e:
+            raise Exception(f"Active Directory error: {e}")
+
+    def _get_all_users_sync(self) -> List[str]:
+        """
+        Synchronous method to get all enabled users from Active Directory.
+        """
+        all_users = []
+
+        try:
+            # Create TLS configuration if SSL is enabled
+            tls = None
+            if self.use_ssl:
+                tls = Tls(validate=ssl.CERT_NONE)
+
+            # Create LDAP server connection
+            server = Server(
+                self.server_address,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                tls=tls,
+                get_info=ALL,
+                connect_timeout=self.timeout,
+            )
+
+            # Connect and bind with service account
+            conn = Connection(
+                server,
+                user=self.bind_dn,
+                password=self.bind_password,
+                auto_bind=True,
+            )
+
+            try:
+                # Search for all enabled user objects
+                # userAccountControl: 0x0002 = ACCOUNTDISABLE bit
+                # Use bitwise filter to exclude disabled accounts
+                search_filter = (
+                    "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+                )
+
+                conn.search(
+                    search_base=self.base_dn,
+                    search_filter=search_filter,
+                    attributes=["sAMAccountName"],
+                    paged_size=500,  # Use paging for large results
+                )
+
+                # Extract sAMAccountName from each user
+                for entry in conn.entries:
+                    sam_account = entry.sAMAccountName.value
+                    if sam_account:
+                        all_users.append(sam_account)
+
+                return all_users
 
             finally:
                 conn.unbind()
