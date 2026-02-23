@@ -2,6 +2,9 @@ import httpx
 import os
 from typing import Optional, List
 import time
+import json
+import jwt
+from datetime import datetime, timedelta
 from .base import BaseConnector
 
 
@@ -20,9 +23,168 @@ class OktaConnector(BaseConnector):
         self.api_token = self.config.get("api_token") or os.getenv("OKTA_API_TOKEN")
         self.timeout = self.config.get("timeout", 10)
 
+        # Private key for private_key_jwt authentication (supports both PEM and JWK formats)
+        private_key_input = self.config.get("private_key") or os.getenv("OKTA_PRIVATE_KEY")
+        self.private_key_pem = None
+        self.private_key_jwk = None
+        self.private_key_kid = None
+
+        if private_key_input:
+            # Try PEM format first
+            if isinstance(private_key_input, str) and "-----BEGIN" in private_key_input:
+                # Handle escaped newlines (\n as literal backslash-n)
+                private_key_input = private_key_input.replace("\\n", "\n")
+                self.private_key_pem = private_key_input
+                # Try to extract kid from environment or config if available
+                kid_input = self.config.get("private_key_kid") or os.getenv("OKTA_PRIVATE_KEY_KID")
+                if kid_input:
+                    self.private_key_kid = kid_input
+            else:
+                # Try JWK format
+                try:
+                    key_data = json.loads(private_key_input) if isinstance(private_key_input, str) else private_key_input
+                    self.private_key_jwk = key_data
+                    self.private_key_kid = key_data.get("kid")
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
         # Token cache
         self._access_token = None
         self._token_expires_at = 0
+
+    def _create_jwt_assertion(self, token_url: str) -> str:
+        """
+        Create a signed JWT assertion for private_key_jwt authentication.
+
+        Supports both PEM and JWK format private keys.
+
+        Args:
+            token_url: The token endpoint URL
+
+        Returns:
+            Signed JWT string
+        """
+        now = datetime.utcnow()
+        exp = now + timedelta(seconds=1)
+
+        # JWT Header
+        header = {
+            "alg": "RS256",
+            "typ": "JWT",
+        }
+        if self.private_key_kid:
+            header["kid"] = self.private_key_kid
+
+        # JWT Claims
+        # Okta requires: iss (client_id), sub (client_id), aud (token endpoint), iat, exp
+        payload = {
+            "iss": self.client_id,
+            "sub": self.client_id,
+            "aud": token_url,
+            "iat": int(now.timestamp()),
+            "exp": int(exp.timestamp()),
+        }
+
+        try:
+            # If we have PEM format, use it directly
+            if self.private_key_pem:
+                token = jwt.encode(
+                    payload, self.private_key_pem, algorithm="RS256", headers=header
+                )
+                return token
+
+            # Otherwise, convert JWK to PEM
+            if self.private_key_jwk:
+                from cryptography.hazmat.primitives import serialization
+                from cryptography.hazmat.backends import default_backend
+                from cryptography.hazmat.primitives.asymmetric import rsa
+
+                # Convert JWK RSA key to PEM
+                n = int.from_bytes(
+                    __import__("base64").urlsafe_b64decode(
+                        self.private_key_jwk["n"]
+                        + "=" * (4 - len(self.private_key_jwk["n"]) % 4)
+                    ),
+                    "big",
+                )
+                e = int.from_bytes(
+                    __import__("base64").urlsafe_b64decode(
+                        self.private_key_jwk["e"]
+                        + "=" * (4 - len(self.private_key_jwk["e"]) % 4)
+                    ),
+                    "big",
+                )
+                d = int.from_bytes(
+                    __import__("base64").urlsafe_b64decode(
+                        self.private_key_jwk["d"]
+                        + "=" * (4 - len(self.private_key_jwk["d"]) % 4)
+                    ),
+                    "big",
+                )
+                p = int.from_bytes(
+                    __import__("base64").urlsafe_b64decode(
+                        self.private_key_jwk["p"]
+                        + "=" * (4 - len(self.private_key_jwk["p"]) % 4)
+                    ),
+                    "big",
+                )
+                q = int.from_bytes(
+                    __import__("base64").urlsafe_b64decode(
+                        self.private_key_jwk["q"]
+                        + "=" * (4 - len(self.private_key_jwk["q"]) % 4)
+                    ),
+                    "big",
+                )
+                dmp1 = int.from_bytes(
+                    __import__("base64").urlsafe_b64decode(
+                        self.private_key_jwk["dp"]
+                        + "=" * (4 - len(self.private_key_jwk["dp"]) % 4)
+                    ),
+                    "big",
+                )
+                dmq1 = int.from_bytes(
+                    __import__("base64").urlsafe_b64decode(
+                        self.private_key_jwk["dq"]
+                        + "=" * (4 - len(self.private_key_jwk["dq"]) % 4)
+                    ),
+                    "big",
+                )
+                iqmp = int.from_bytes(
+                    __import__("base64").urlsafe_b64decode(
+                        self.private_key_jwk["qi"]
+                        + "=" * (4 - len(self.private_key_jwk["qi"]) % 4)
+                    ),
+                    "big",
+                )
+
+                # Create RSA key
+                rsa_key = rsa.RSAPrivateNumbers(
+                    p=p,
+                    q=q,
+                    d=d,
+                    dmp1=dmp1,
+                    dmq1=dmq1,
+                    iqmp=iqmp,
+                    public_numbers=rsa.RSAPublicNumbers(e=e, n=n),
+                )
+
+                private_key_pem = rsa_key.private_key(
+                    backend=default_backend()
+                ).private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption(),
+                )
+
+                token = jwt.encode(
+                    payload, private_key_pem, algorithm="RS256", headers=header
+                )
+                return token
+
+            raise ValueError("No private key configured (PEM or JWK)")
+
+        except Exception as e:
+            raise ValueError(f"Failed to create JWT assertion: {e}")
 
     async def _get_access_token(self, client: httpx.AsyncClient) -> str:
         """
@@ -37,15 +199,22 @@ class OktaConnector(BaseConnector):
         # Request new token
         token_url = f"{self.org_url}/oauth2/v1/token"
 
-        response = await client.post(
-            token_url,
-            data={
-                "grant_type": "client_credentials",
-                "scope": "okta.users.read",
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-            },
-        )
+        # Prepare token request data
+        data = {
+            "grant_type": "client_credentials",
+            "scope": "okta.users.read",
+        }
+
+        # Use private_key_jwt if private key is available, otherwise use client_secret
+        if self.private_key_pem or self.private_key_jwk:
+            jwt_assertion = self._create_jwt_assertion(token_url)
+            data["client_assertion_type"] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+            data["client_assertion"] = jwt_assertion
+        else:
+            data["client_id"] = self.client_id
+            data["client_secret"] = self.client_secret
+
+        response = await client.post(token_url, data=data)
 
         if response.status_code != 200:
             raise ValueError(
@@ -79,7 +248,7 @@ class OktaConnector(BaseConnector):
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 # Get access token (OAuth2) or use API token
-                if self.client_id and self.client_secret:
+                if self.client_id and (self.client_secret or self.private_key_pem or self.private_key_jwk):
                     access_token = await self._get_access_token(client)
                     auth_header = f"Bearer {access_token}"
                 else:
@@ -144,7 +313,7 @@ class OktaConnector(BaseConnector):
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 # Get access token (OAuth2) or use API token
-                if self.client_id and self.client_secret:
+                if self.client_id and (self.client_secret or self.private_key_pem or self.private_key_jwk):
                     access_token = await self._get_access_token(client)
                     auth_header = f"Bearer {access_token}"
                 else:
@@ -229,11 +398,15 @@ class OktaConnector(BaseConnector):
         if not self.org_url.startswith("https://"):
             return False
 
-        # Either OAuth2 (client_id + client_secret) or API token is required
-        has_oauth2 = self.client_id and self.client_secret
+        # Check for valid authentication method:
+        # 1. OAuth2 with private_key_jwt (client_id + private_key in PEM or JWK format)
+        # 2. OAuth2 with client_secret (client_id + client_secret)
+        # 3. API token
+        has_oauth2_private_key = self.client_id and (self.private_key_pem or self.private_key_jwk)
+        has_oauth2_client_secret = self.client_id and self.client_secret
         has_api_token = self.api_token
 
-        if not (has_oauth2 or has_api_token):
+        if not (has_oauth2_private_key or has_oauth2_client_secret or has_api_token):
             return False
 
         return True
