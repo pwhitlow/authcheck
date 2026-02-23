@@ -20,21 +20,39 @@ async def test_okta():
 
     # Check environment variables
     org_url = os.getenv("OKTA_ORG_URL")
+    client_id = os.getenv("OKTA_CLIENT_ID")
+    client_secret = os.getenv("OKTA_CLIENT_SECRET")
     api_token = os.getenv("OKTA_API_TOKEN")
 
     print("📋 Configuration Check:")
     print(f"  OKTA_ORG_URL: {org_url if org_url else '❌ NOT SET'}")
-    print(
-        f"  OKTA_API_TOKEN: {'✓ SET' if api_token else '❌ NOT SET'} "
-        f"({len(api_token) if api_token else 0} chars)"
-    )
 
-    if not org_url or not api_token:
+    if client_id and client_secret:
+        print(f"  OKTA_CLIENT_ID: ✓ SET ({len(client_id)} chars)")
+        print(f"  OKTA_CLIENT_SECRET: ✓ SET ({len(client_secret)} chars)")
+        auth_method = "OAuth2"
+    elif api_token:
+        print(
+            f"  OKTA_API_TOKEN: ✓ SET "
+            f"({len(api_token)} chars)"
+        )
+        auth_method = "API Token"
+    else:
+        auth_method = None
+
+    if not org_url or not auth_method:
         print("\n❌ Missing configuration!")
-        print("\nCreate a .env file with:")
-        print("  OKTA_ORG_URL=https://yourorg.okta.com")
-        print("  OKTA_API_TOKEN=your_api_token")
+        print("\nCreate a .env file with EITHER:")
+        print("\n  Option 1: OAuth2 (recommended)")
+        print("    OKTA_ORG_URL=https://yourorg.okta.com")
+        print("    OKTA_CLIENT_ID=your_client_id")
+        print("    OKTA_CLIENT_SECRET=your_client_secret")
+        print("\n  Option 2: API Token")
+        print("    OKTA_ORG_URL=https://yourorg.okta.com")
+        print("    OKTA_API_TOKEN=your_api_token")
         return False
+
+    print(f"\n  Auth Method: {auth_method}")
 
     print("\n✅ Configuration looks good!\n")
 
