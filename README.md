@@ -240,15 +240,27 @@ Once integration details are available for a connector:
 
 ## Configuration
 
-### Environment Variables (to be added)
+### Okta Configuration
 
-Create a `.env` file in the project root:
+The Okta connector uses the Okta Python SDK with Private Key authentication. Create a configuration file (e.g., `~/.okta_config`):
+
+```json
+{
+    "orgUrl": "https://your-org.okta.com",
+    "authorizationMode": "PrivateKey",
+    "clientId": "your_client_id",
+    "scopes": ["okta.users.read", "okta.users.manage"],
+    "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+}
+```
+
+See `docs/OKTA_SETUP.md` for detailed setup instructions.
+
+### Other Connectors
+
+Environment variables or configuration dictionaries for other connectors:
 
 ```env
-# Okta
-OKTA_API_TOKEN=your_token
-OKTA_ORG_URL=https://your-org.okta.com
-
 # RADIUS
 RADIUS_SERVER=radius.example.com
 RADIUS_SECRET=shared_secret

@@ -40,6 +40,10 @@ MANIFEST
 .env.local
 .env.*.local
 
+# Okta Configuration (contains private keys)
+.okta_config
+*/.okta_config
+
 # OS
 .DS_Store
 Thumbs.db

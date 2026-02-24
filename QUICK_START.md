@@ -94,11 +94,11 @@ user-auth-verification/
 └── README.md            # Full documentation
 ```
 
-## Available Connectors (Placeholder Phase)
+## Available Connectors
 
-1. **Okta** - Returns true (placeholder)
-2. **RADIUS** - Returns false (placeholder)
-3. **Active Directory** - Returns true (placeholder)
+1. **Okta** - Uses Okta Python SDK (requires configuration - see docs/OKTA_SETUP.md)
+2. **RADIUS** - Placeholder (returns false)
+3. **Active Directory** - Placeholder (returns true)
 
 ## Sample CSV Format
 

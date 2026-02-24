@@ -1,4 +1,6 @@
 import asyncio
+import json
+from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
 from datetime import datetime
@@ -6,6 +8,22 @@ from typing import Dict, List, Set
 from app.connectors import get_registry
 
 router = APIRouter()
+
+
+def load_connector_config():
+    """Load connector configurations from files."""
+    config = {}
+
+    # Try to load Okta config from ~/.okta_config
+    okta_config_path = Path.home() / ".okta_config"
+    if okta_config_path.exists():
+        try:
+            with open(okta_config_path, 'r') as f:
+                config['okta'] = json.load(f)
+        except Exception as e:
+            print(f"Warning: Failed to load Okta config: {e}")
+
+    return config
 
 
 class ComparisonResult(BaseModel):
@@ -29,8 +47,11 @@ async def compare_users() -> ComparisonResult:
     Returns:
         Grid data showing which users are in which sources
     """
+    # Load connector configurations
+    connector_config = load_connector_config()
+
     registry = get_registry()
-    connectors = registry.get_all_connectors()
+    connectors = registry.get_all_connectors(connector_config)
 
     all_users_set: Set[str] = set()
     source_users: Dict[str, Set[str]] = {}

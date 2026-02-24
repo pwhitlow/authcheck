@@ -12,7 +12,7 @@
 |-------|--------|---------|
 | **Phase 1: Core Framework** | ✅ COMPLETE | FastAPI app, registry, routes, templates |
 | **Phase 2: Stub Connectors** | ✅ COMPLETE | Okta, RADIUS, Active Directory |
-| **Phase 3: Real Integrations** | ⏳ PENDING | Ready for implementation when details available |
+| **Phase 3: Real Integrations** | 🔄 IN PROGRESS | Okta ✅ complete (SDK), RADIUS ⏳ pending, AD ⏳ pending |
 | **Phase 4: Features** | ⏳ PENDING | CSV export, caching, progress indicators |
 
 ---
@@ -177,10 +177,10 @@ Verification logic working:
 
 ### Okta Connector
 - **File**: `app/connectors/okta.py`
-- **Status**: Stub implementation
-- **Current Behavior**: Returns `True` (user found)
-- **Integration Point**: Replace `authenticate_user()` with Okta API calls
-- **Config Needed**: `OKTA_API_TOKEN`, `OKTA_ORG_URL`
+- **Status**: Real implementation using Okta Python SDK
+- **Current Behavior**: Queries Okta using SDK with Private Key JWT authentication
+- **Integration Point**: Fully functional - queries actual Okta organization
+- **Config Needed**: JSON config with `orgUrl`, `authorizationMode`, `clientId`, `scopes`, `privateKey` (see docs/OKTA_SETUP.md)
 
 ### RADIUS Connector
 - **File**: `app/connectors/radius.py`
@@ -429,7 +429,8 @@ async def authenticate_user(self, username: str) -> bool:
 | aiofiles | 23.2.1 | Async file handling |
 | python-multipart | 0.0.6 | Form file uploads |
 | python-dotenv | 1.0.0 | Environment variables |
-| httpx | 0.26.0 | Async HTTP client |
+| okta | 2.9.5 | Okta Python SDK |
+| ldap3 | 2.9.1 | LDAP/AD client |
 
 ---
 

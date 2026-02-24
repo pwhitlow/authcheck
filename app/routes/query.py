@@ -1,5 +1,7 @@
 import asyncio
+import json
 from typing import List
+from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
@@ -7,6 +9,22 @@ from app.models import VerificationResults
 from app.connectors import get_registry
 
 router = APIRouter()
+
+
+def load_connector_config():
+    """Load connector configurations from files."""
+    config = {}
+
+    # Try to load Okta config from ~/.okta_config
+    okta_config_path = Path.home() / ".okta_config"
+    if okta_config_path.exists():
+        try:
+            with open(okta_config_path, 'r') as f:
+                config['okta'] = json.load(f)
+        except Exception as e:
+            print(f"Warning: Failed to load Okta config: {e}")
+
+    return config
 
 
 class VerifyRequest(BaseModel):
@@ -27,8 +45,11 @@ async def verify_users(request: VerifyRequest) -> VerificationResults:
     if not request.users:
         raise HTTPException(status_code=400, detail="No users provided")
 
+    # Load connector configurations
+    connector_config = load_connector_config()
+
     registry = get_registry()
-    connectors = registry.get_all_connectors()
+    connectors = registry.get_all_connectors(connector_config)
 
     if not connectors:
         raise HTTPException(status_code=500, detail="No connectors available")

@@ -197,11 +197,11 @@ docker-compose up
 
 ### For Each Connector
 
-1. **Okta**
-   - Add OKTA_API_TOKEN, OKTA_ORG_URL to config
-   - Implement actual Okta API calls (users endpoint)
-   - Add error handling for API failures
-   - Implement timeout/retry logic
+1. **Okta** ✅ COMPLETE
+   - Uses Okta Python SDK with Private Key JWT authentication
+   - Implements user lookup via SDK's list_users() method
+   - Includes error handling for authentication failures
+   - See docs/OKTA_SETUP.md for configuration details
 
 2. **RADIUS**
    - Add RADIUS server address, shared secret
@@ -252,17 +252,19 @@ When implementing real connectors, use environment variables:
 
 ```python
 # In each connector's __init__ or validate_config
-from dotenv import load_dotenv
-import os
+from okta.client import Client as OktaClient
 
 class OktaConnector(BaseConnector):
-    def validate_config(self):
-        api_token = os.getenv('OKTA_API_TOKEN')
-        org_url = os.getenv('OKTA_ORG_URL')
+    def __init__(self, config: dict = None):
+        super().__init__(config)
+        if self.config:
+            self.client = OktaClient(self.config)
 
-        if not api_token or not org_url:
+    def validate_config(self):
+        if not self.config:
             return False
-        return True
+        required = ["orgUrl", "authorizationMode", "clientId", "scopes", "privateKey"]
+        return all(field in self.config for field in required)
 ```
 
 ## Security Considerations

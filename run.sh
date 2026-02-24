@@ -24,6 +24,13 @@ pip install -q -r requirements.txt
 echo ""
 echo "✅ Setup complete!"
 echo ""
+
+# Set SSL certificate path for macOS
+export SSL_CERT_FILE=$(python3 -c "import certifi; print(certifi.where())" 2>/dev/null)
+if [ -n "$SSL_CERT_FILE" ]; then
+    echo "🔒 SSL certificates configured"
+fi
+
 echo "🌐 Starting FastAPI server on http://localhost:8000"
 echo "📊 API docs available at http://localhost:8000/docs"
 echo ""

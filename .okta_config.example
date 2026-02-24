@@ -1,0 +1,7 @@
+{
+    "orgUrl": "https://your-org.okta.com",
+    "authorizationMode": "PrivateKey",
+    "clientId": "your_client_id",
+    "scopes": ["okta.users.read", "okta.users.manage"],
+    "privateKey": "-----BEGIN PRIVATE KEY-----\nYour private key content here\n-----END PRIVATE KEY-----"
+}

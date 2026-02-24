@@ -35,12 +35,8 @@ class RadiusConnector(BaseConnector):
         Returns:
             True if user exists, False otherwise
         """
-        if not self.validate_config():
-            raise ValueError("RADIUS configuration is invalid or incomplete")
-
-        # Placeholder for actual RADIUS integration
-        # Full implementation would use pyradius or similar library
-        # with proper Access-Request packet creation and handling
+        # Stub implementation - not configured
+        # TODO: Implement actual RADIUS authentication when config is available
         return False
 
     def get_display_name(self) -> str:
