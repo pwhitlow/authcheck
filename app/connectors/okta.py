@@ -71,6 +71,8 @@ class OktaConnector(BaseConnector):
         """
         Get list of all active users from Okta.
 
+        Handles pagination to retrieve all users.
+
         Returns:
             List of usernames (profile.login values)
         """
@@ -80,17 +82,29 @@ class OktaConnector(BaseConnector):
         all_users = []
 
         try:
-            # Query for all active users
+            # Query for all active users with pagination
             query_parameters = {'filter': 'status eq "ACTIVE"'}
+
+            # Get first page
             users, resp, err = await self.client.list_users(query_parameters)
 
             if err:
                 raise Exception(f"Error retrieving users from Okta: {err}")
 
-            # Extract login from each user
+            # Process first page
             for user in users:
                 if hasattr(user, 'profile') and hasattr(user.profile, 'login'):
                     all_users.append(user.profile.login)
+
+            # Check for more pages and iterate through them
+            while resp.has_next():
+                users, err = await resp.next()
+                if err:
+                    raise Exception(f"Error retrieving next page from Okta: {err}")
+
+                for user in users:
+                    if hasattr(user, 'profile') and hasattr(user.profile, 'login'):
+                        all_users.append(user.profile.login)
 
             return all_users
 
