@@ -176,7 +176,7 @@ Connectors receive config dict in `__init__`. For Okta, use the SDK configuratio
 - Stub connectors (return hardcoded values)
 
 **Phase 3 (In Progress)**:
-- Okta connector: **COMPLETE** - Uses Okta Python SDK with Private Key authentication
+- Okta connector: **COMPLETE** - Uses Okta Python SDK with Private Key authentication and full pagination
 - RADIUS connector: **PENDING** - Stub implementation
 - Active Directory connector: **PENDING** - Stub implementation
 - Proper error handling and timeouts
