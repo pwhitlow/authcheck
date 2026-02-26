@@ -1,6 +1,8 @@
 SLACK vs OKTA COMPARISON REPORT
 ============================================================
 
+Generated: 2026-02-26 12:53:12
+
 Total in Slack CSV:  193
 Total in Okta:       267
 In both systems:     176
@@ -27,98 +29,3 @@ Users in Slack but NOT in Okta (17):
   Sydney Johnston                sjohnston@hudsonalpha.org
   Tina Thompson                  tthompson@hudsonalpha.org
   Zoe Ifill                      zifill@hudsonalpha.org
-
-
-Users in Okta but NOT in Slack (91):
-============================================================
-  HudsonAlphaSeminar@hudsonalpha.org
-  Influx.Alert@hudsonalpha.org
-  Sbaker@hudsonalpha.org
-  Tthompson@hudsonalpha.org
-  aanderson@hudsonalpha.org
-  accounts.payable@hudsonalpha.org
-  accountsreceivable@hudsonalpha.org
-  acharris@hudsonalpha.org
-  ahurst@clinicallab.org
-  alaster@hudsonalpha.org
-  archiver@haib.org
-  ashine@hudsonalpha.org
-  astarling@hudsonalpha.org
-  auditorium@hudsonalpha.org
-  aupadhyay@hudsonalpha.org
-  awoodall@hudsonalpha.org
-  biotrain@hudsonalpha.org
-  blarison@ucla.edu
-  bpappas@hudsonalpha.org
-  broberts@hudsonalpha.org
-  catering@hudsonalpha.org
-  ckaelin@hudsonalpha.org
-  cmasterski@hudsonalpha.org
-  code@hudsonalpha.org
-  conferences@hudsonalpha.org
-  cooperlab_genematcher@hudsonalpha.org
-  cromwell@haib.org
-  crose@hudsonalpha.org
-  cruhl@datainscience.com
-  cshaw@hudsonalpha.org
-  dburns@hudsonalpha.org
-  dparker@hudsonalpha.org
-  edoutreach@hudsonalpha.org
-  edunne@hudsonalpha.org
-  ehs@hudsonalpha.org
-  executive_lounge@hudsonalpha.org
-  facilities@hudsonalpha.org
-  fieldtrips@hudsonalpha.org
-  gbarsh@hudsonalpha.org
-  gcp@hudsonalpha.org
-  globus@hudsonalpha.org
-  helpdesk@hudsonalpha.org
-  herokuadmin@hudsonalpha.org
-  hfry@hudsonalpha.org
-  hlemay@hudsonalpha.org
-  hwright@hudsonalpha.org
-  iscott@hudsonalpha.org
-  it@hudsonalpha.org
-  jalban@hudsonalpha.org
-  jemoore@hudsonalpha.org
-  jhudson@hudsonalpha.org
-  jscoon@hudsonalpha.org
-  jturner@smithfamilyclinic.org
-  jurobinson@hudsonalpha.org
-  juvaughn@hudsonalpha.org
-  khasney@datainscience.com
-  kmprinting@hudsonalpha.org
-  kmsfc@hudsonalpha.org
-  ktrausch@hudsonalpha.org
-  lasmith@hudsonalpha.org
-  liqidapi@hudsonalpha.org
-  lpadgittcobb@hudsonalpha.org
-  mbelaffif@hudsonalpha.org
-  mbryan@hudsonalpha.org
-  megorova@hudsonalpha.org
-  mmoffett@hudsonalpha.org
-  mujones@hudsonalpha.org
-  president@hudsonalpha.org
-  purchasing@hudsonalpha.org
-  qjohnston@hudsonalpha.org
-  rcechovic@hudsonalpha.org
-  readonly.api@hudsonalpha.org
-  rhauser@hudsonalpha.org
-  rshanafelt@hudsonalpha.org
-  rsouza@hudsonalpha.org
-  rtaylor@hudsonalpha.org
-  scechovic@hudsonalpha.org
-  sclem@hudsonalpha.org
-  scouch@hudsonalpha.org
-  seger@hudsonalpha.org
-  sescudero@hudsonalpha.org
-  shipping-receiving@hudsonalpha.org
-  sjcooper@hudsonalpha.org
-  smolaeir@hudsonalpha.org
-  software-dev-bot@hudsonalpha.org
-  svcoktaad@hudsonalpha.org
-  svcoktasf@hudsonalpha.org
-  tmitros@berkeley.edu
-  virgil@haib.org
-  youtube@hudsonalpha.org
-  zrenner@hudsonalpha.org
