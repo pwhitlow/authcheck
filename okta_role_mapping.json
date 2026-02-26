@@ -4,5 +4,6 @@
   "ctr": "Contractor",
   "emp": "Employee",
   "int": "Trainee",
-  "srv": "Service Account"
+  "srv": "Service Account",
+  "grp": "Group"
 }
