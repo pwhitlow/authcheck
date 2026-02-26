@@ -3,5 +3,6 @@
   "bio": "BioTrain Intern",
   "ctr": "Contractor",
   "emp": "Employee",
-  "int": "Trainee"
+  "int": "Trainee",
+  "srv": "Service Account"
 }
