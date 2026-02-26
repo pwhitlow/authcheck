@@ -163,6 +163,17 @@
         min-width: 150px;
     }
 
+    .user-link {
+        color: #0066cc;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .user-link:hover {
+        color: #004499;
+        text-decoration: underline;
+    }
+
     .found {
         color: #28a745;
         font-weight: bold;
@@ -290,7 +301,7 @@
         tableHtml += "</tr></thead><tbody>";
 
         data.all_users.forEach((user) => {
-            tableHtml += `<tr><td class="user-cell">${user}</td>`;
+            tableHtml += `<tr><td class="user-cell"><a href="/user/${encodeURIComponent(user)}" class="user-link">${user}</a></td>`;
 
             data.sources.forEach((source) => {
                 const exists = data.user_sources[user][source];
@@ -440,7 +451,7 @@
         html += "<tbody>";
         data.users.forEach((user) => {
             html += `<tr style="border-bottom: 1px solid #e0e0e0;">`;
-            html += `<td style="padding: 12px; font-weight: 500;">${user}</td>`;
+            html += `<td style="padding: 12px; font-weight: 500;"><a href="/user/${encodeURIComponent(user)}" class="user-link">${user}</a></td>`;
             data.sources.forEach((source) => {
                 const exists = data.results[user][source];
                 const symbol = exists ? "✓" : "✗";

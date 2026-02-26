@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 
 class BaseConnector(ABC):
@@ -26,6 +26,25 @@ class BaseConnector(ABC):
             True if user exists, False otherwise
         """
         pass
+
+    async def get_user_details(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed information about a user from this authentication source.
+
+        This is an optional method. Returns additional details beyond just existence.
+
+        Args:
+            username: Username to look up
+
+        Returns:
+            Dictionary of user details, or None if user not found or not supported
+            Common fields: email, name, first_name, last_name, department, title, status, etc.
+        """
+        # Default implementation - just check if user exists
+        exists = await self.authenticate_user(username)
+        if exists:
+            return {"exists": True, "username": username}
+        return None
 
     async def get_all_users(self) -> List[str]:
         """

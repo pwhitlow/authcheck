@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Dict, Any
 import csv
 import os
 from .base import BaseConnector
@@ -16,19 +16,31 @@ class ADPConnector(BaseConnector):
         super().__init__(config)
         self.csv_path = self.config.get('csv_path', 'slack_employees.csv')
         self._users_cache = None
+        self._user_details_cache = None
 
     def _load_users(self) -> set:
         """Load users from CSV file and cache them."""
         if self._users_cache is not None:
             return self._users_cache
 
-        users = set()
+        # Load details cache which includes usernames
+        self._load_user_details()
+
+        users = set(self._user_details_cache.keys()) if self._user_details_cache else set()
+        self._users_cache = users
+        return users
+
+    def _load_user_details(self) -> Dict[str, Dict[str, Any]]:
+        """Load user details from CSV file and cache them."""
+        if self._user_details_cache is not None:
+            return self._user_details_cache
+
+        user_details = {}
         csv_path = os.path.join(os.path.dirname(__file__), '..', '..', self.csv_path)
 
         if not os.path.exists(csv_path):
-            # Return empty set if file doesn't exist
-            self._users_cache = users
-            return users
+            self._user_details_cache = user_details
+            return user_details
 
         try:
             with open(csv_path, 'r') as f:
@@ -36,17 +48,30 @@ class ADPConnector(BaseConnector):
                 for row in reader:
                     first = row.get(' FirstName', '').strip()
                     last = row.get('LastName', '').strip()
+                    department = row.get(' Department', '').strip()
+                    title = row.get(' Title', '').strip()
+                    employee_number = row.get(' EmployeeNumber', '').strip()
 
                     if first and last:
                         # Create email in firstinitiallastname@hudsonalpha.org format
                         email = f"{first[0].lower()}{last.lower()}@hudsonalpha.org"
-                        users.add(email)
+
+                        user_details[email] = {
+                            "email": email,
+                            "first_name": first,
+                            "last_name": last,
+                            "full_name": f"{first} {last}",
+                            "department": department,
+                            "title": title,
+                            "employee_number": employee_number,
+                            "source": "ADP"
+                        }
         except Exception:
-            # If error reading file, return empty set
+            # If error reading file, return empty dict
             pass
 
-        self._users_cache = users
-        return users
+        self._user_details_cache = user_details
+        return user_details
 
     async def authenticate_user(self, username: str) -> bool:
         """
@@ -60,6 +85,19 @@ class ADPConnector(BaseConnector):
         """
         users = self._load_users()
         return username.lower() in users
+
+    async def get_user_details(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed information about a user from ADP.
+
+        Args:
+            username: Username/email to look up
+
+        Returns:
+            Dictionary with user details (name, department, title, etc.) or None
+        """
+        details = self._load_user_details()
+        return details.get(username.lower())
 
     async def get_all_users(self) -> List[str]:
         """
