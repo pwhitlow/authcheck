@@ -57,8 +57,8 @@ async def verify_users(request: VerifyRequest) -> VerificationResults:
     # Build results dictionary
     results = {}
 
-    # Sort users alphabetically for consistent display
-    sorted_users = sorted(request.users)
+    # Sort users alphabetically for consistent display (case-insensitive)
+    sorted_users = sorted(request.users, key=str.lower)
 
     # For each user, query all connectors in parallel
     for username in sorted_users:

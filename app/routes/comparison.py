@@ -86,7 +86,7 @@ async def compare_users() -> ComparisonResult:
 
     # Build comparison matrix
     user_sources_matrix = {}
-    for username in sorted(all_users_set):
+    for username in sorted(all_users_set, key=str.lower):
         user_sources_matrix[username] = {}
         for connector_id in sources_with_data:
             user_sources_matrix[username][connector_id] = (
@@ -129,7 +129,7 @@ async def compare_users() -> ComparisonResult:
             user_roles[username] = "n/a"
 
     return ComparisonResult(
-        all_users=sorted(list(all_users_set)),
+        all_users=sorted(list(all_users_set), key=str.lower),
         sources=sources_with_data,
         user_sources=user_sources_matrix,
         source_counts=source_counts,
