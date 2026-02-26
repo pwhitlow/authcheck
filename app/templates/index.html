@@ -218,6 +218,7 @@
 
 <script>
     let currentUsers = [];
+    let comparisonData = null;
 
     function switchTab(tabName) {
         // Hide all tabs
@@ -276,6 +277,7 @@
     }
 
     function displayComparison(data) {
+        comparisonData = data;
         const resultsContainer = document.getElementById("comparison-results");
 
         // Build stats
@@ -290,10 +292,28 @@
 
         statsHtml += "</div>";
 
+        // Get unique roles for filter
+        const uniqueRoles = [...new Set(Object.values(data.user_roles))].sort();
+
+        // Build filter dropdown
+        let filterHtml = '<div style="margin: 20px 0;">' +
+            '<label for="role-filter" style="font-weight: 500; margin-right: 10px;">Filter by Role:</label>' +
+            '<select id="role-filter" onchange="filterComparisonByRole()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 200px;">' +
+            '<option value="all">All Roles</option>';
+
+        uniqueRoles.forEach(role => {
+            filterHtml += `<option value="${role}">${role}</option>`;
+        });
+
+        filterHtml += '</select>' +
+            '<span id="filtered-count" style="margin-left: 15px; color: #666;"></span>' +
+            '</div>';
+
         // Build comparison table
         let tableHtml =
             '<h3>User Comparison Matrix</h3>' +
             '<p style="color: #666; margin-bottom: 15px;">✓ = Account exists in system</p>' +
+            filterHtml +
             '<div class="comparison-grid">' +
             '<table class="comparison-table">' +
             '<thead><tr><th>Username</th><th>Okta Role</th>';
@@ -302,11 +322,11 @@
             tableHtml += `<th>${source}</th>`;
         });
 
-        tableHtml += "</tr></thead><tbody>";
+        tableHtml += "</tr></thead><tbody id='comparison-tbody'>";
 
         data.all_users.forEach((user) => {
             const role = data.user_roles[user] || "n/a";
-            tableHtml += `<tr><td class="user-cell"><a href="/user/${encodeURIComponent(user)}" class="user-link">${user}</a></td>`;
+            tableHtml += `<tr data-role="${role}"><td class="user-cell"><a href="/user/${encodeURIComponent(user)}" class="user-link">${user}</a></td>`;
             tableHtml += `<td style="text-align: center;">${role}</td>`;
 
             data.sources.forEach((source) => {
@@ -327,6 +347,40 @@
 
         resultsContainer.innerHTML = statsHtml + tableHtml;
         resultsContainer.style.display = "block";
+        updateFilteredCount();
+    }
+
+    function filterComparisonByRole() {
+        if (!comparisonData) return;
+
+        const selectedRole = document.getElementById("role-filter").value;
+        const rows = document.querySelectorAll("#comparison-tbody tr");
+
+        // Save filter state
+        sessionStorage.setItem('roleFilter', selectedRole);
+
+        rows.forEach(row => {
+            if (selectedRole === "all" || row.dataset.role === selectedRole) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        updateFilteredCount();
+    }
+
+    function updateFilteredCount() {
+        const selectedRole = document.getElementById("role-filter")?.value;
+        const totalRows = document.querySelectorAll("#comparison-tbody tr").length;
+        const visibleRows = document.querySelectorAll("#comparison-tbody tr:not([style*='display: none'])").length;
+        const countElement = document.getElementById("filtered-count");
+
+        if (countElement && selectedRole !== "all") {
+            countElement.textContent = `Showing ${visibleRows} of ${totalRows} users`;
+        } else if (countElement) {
+            countElement.textContent = "";
+        }
     }
 
     // ===== VERIFY SPECIFIC USERS =====
@@ -501,11 +555,21 @@
         }
 
         // Restore comparison data
-        const comparisonData = sessionStorage.getItem('comparisonData');
-        if (comparisonData) {
+        const savedComparisonData = sessionStorage.getItem('comparisonData');
+        if (savedComparisonData) {
             try {
-                const data = JSON.parse(comparisonData);
+                const data = JSON.parse(savedComparisonData);
                 displayComparison(data);
+
+                // Restore filter state
+                const savedFilter = sessionStorage.getItem('roleFilter');
+                if (savedFilter) {
+                    const filterSelect = document.getElementById('role-filter');
+                    if (filterSelect) {
+                        filterSelect.value = savedFilter;
+                        filterComparisonByRole();
+                    }
+                }
             } catch (e) {
                 console.error('Failed to restore comparison data:', e);
             }
