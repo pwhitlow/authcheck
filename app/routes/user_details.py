@@ -61,19 +61,22 @@ async def get_user_details(username: str):
         connector_id = connector.get_connector_id()
         connector_name = connector.get_display_name()
 
+        # Skip connectors that are not implemented or not configured
         if isinstance(result, Exception):
-            user_data["sources"][connector_id] = {
-                "name": connector_name,
-                "found": False,
-                "error": str(result)
-            }
+            # Skip NotImplementedError (connector stubs) and configuration errors
+            if isinstance(result, (NotImplementedError, ValueError)):
+                continue
+            # For other exceptions, you could optionally show an error or skip
+            continue
         elif result:
+            # Connector returned data - show it
             user_data["sources"][connector_id] = {
                 "name": connector_name,
                 "found": True,
                 "details": result
             }
         else:
+            # Connector returned None (user not found) - show "Not Found"
             user_data["sources"][connector_id] = {
                 "name": connector_name,
                 "found": False
