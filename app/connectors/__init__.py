@@ -3,6 +3,7 @@ from .base import BaseConnector
 from .okta import OktaConnector
 from .radius import RadiusConnector
 from .active_directory import ActiveDirectoryConnector
+from .adp import ADPConnector
 
 
 class ConnectorRegistry:
@@ -18,6 +19,7 @@ class ConnectorRegistry:
         self.register("okta", OktaConnector)
         self.register("radius", RadiusConnector)
         self.register("active_directory", ActiveDirectoryConnector)
+        self.register("adp", ADPConnector)
 
     def register(self, connector_id: str, connector_class: type[BaseConnector]):
         """
