@@ -231,6 +231,9 @@
         // Show selected tab
         document.getElementById("tab-content-" + tabName).style.display = "block";
         document.getElementById("tab-" + tabName).classList.add("active");
+
+        // Save active tab to sessionStorage
+        sessionStorage.setItem('activeTab', tabName);
     }
 
     function showAlert(message, type = "success") {
@@ -261,6 +264,7 @@
             }
 
             const data = await response.json();
+            sessionStorage.setItem('comparisonData', JSON.stringify(data));
             displayComparison(data);
             showAlert("Comparison completed successfully", "success");
         } catch (error) {
@@ -367,6 +371,7 @@
 
             const data = await response.json();
             currentUsers = data.users;
+            sessionStorage.setItem('currentUsers', JSON.stringify(currentUsers));
 
             displayUsers(data.users);
             document.getElementById("verify-btn").disabled = false;
@@ -422,6 +427,8 @@
             }
 
             const data = await response.json();
+            sessionStorage.setItem('verificationData', JSON.stringify(data));
+            sessionStorage.setItem('currentUsers', JSON.stringify(currentUsers));
             displayResults(data);
             showAlert("Verification completed successfully", "success");
         } catch (error) {
@@ -484,5 +491,43 @@
         document.getElementById("verify-btn").disabled = true;
         currentUsers = [];
     }
+
+    // Restore cached data on page load
+    function restoreCachedData() {
+        // Restore active tab
+        const activeTab = sessionStorage.getItem('activeTab');
+        if (activeTab) {
+            switchTab(activeTab);
+        }
+
+        // Restore comparison data
+        const comparisonData = sessionStorage.getItem('comparisonData');
+        if (comparisonData) {
+            try {
+                const data = JSON.parse(comparisonData);
+                displayComparison(data);
+            } catch (e) {
+                console.error('Failed to restore comparison data:', e);
+            }
+        }
+
+        // Restore verification data
+        const verificationData = sessionStorage.getItem('verificationData');
+        const savedUsers = sessionStorage.getItem('currentUsers');
+        if (verificationData && savedUsers) {
+            try {
+                const data = JSON.parse(verificationData);
+                currentUsers = JSON.parse(savedUsers);
+                displayResults(data);
+                displayUsers(currentUsers);
+                document.getElementById("verify-btn").disabled = false;
+            } catch (e) {
+                console.error('Failed to restore verification data:', e);
+            }
+        }
+    }
+
+    // Run on page load
+    window.addEventListener('DOMContentLoaded', restoreCachedData);
 </script>
 {% endblock %}
