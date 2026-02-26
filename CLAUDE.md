@@ -11,7 +11,7 @@ AuthCheck is a FastAPI-based authentication verification tool that checks user e
 ### Running the Application
 
 ```bash
-# Quick start with auto-setup (creates venv, installs deps, runs server)
+# Quick start with auto-setup (creates venv, installs deps, handles SSL certs, runs server)
 ./run.sh
 
 # Or manually with uvicorn
@@ -28,7 +28,7 @@ docker-compose up
 python test_api.py
 
 # Test with sample CSV
-# 1. Start server (see above)
+# 1. Start server: ./run.sh
 # 2. Visit http://localhost:8000
 # 3. Upload sample_users.csv
 ```
@@ -36,6 +36,38 @@ python test_api.py
 ### API Documentation
 
 Visit http://localhost:8000/docs for interactive Swagger UI documentation.
+
+## Configuration
+
+Configuration is managed via environment variables loaded from `.env` file:
+
+1. **Copy the example**: `cp .env.example .env`
+2. **Edit `.env`** with your credentials
+3. **Never commit `.env`** to git (already in .gitignore)
+
+### Okta Configuration
+
+The Okta connector uses the Okta Python SDK with **Private Key JWT authentication** (most secure):
+
+```python
+# Configuration is passed as dict to OktaConnector
+{
+    "orgUrl": "https://your-org.okta.com",
+    "authorizationMode": "PrivateKey",
+    "clientId": "your_client_id",
+    "scopes": ["okta.users.read", "okta.users.manage"],
+    "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+}
+```
+
+**Setup guide**: See `docs/OKTA_SETUP.md` for detailed instructions on creating OAuth applications and generating keys.
+
+### Other Connector Configuration
+
+- **Active Directory**: See `docs/AD_SETUP.md` for LDAP setup
+- **RADIUS**: See `docs/RADIUS_SETUP.md` for RADIUS server configuration
+
+All connectors read from `.env` file via environment variables.
 
 ## Architecture
 
@@ -56,11 +88,9 @@ The entire system is built around a **pluggable connector pattern** using a regi
    - Provides `get_all_connectors()` for parallel queries
 
 3. **Individual Connectors**: Each auth source implements BaseConnector
-   - `app/connectors/okta.py`
-   - `app/connectors/radius.py`
-   - `app/connectors/active_directory.py`
-
-**Important**: Currently all connectors are stubs returning placeholder data. Phase 3 implementation will replace stubs with real API calls.
+   - `app/connectors/okta.py` - **COMPLETE** with Okta SDK
+   - `app/connectors/radius.py` - Stub implementation
+   - `app/connectors/active_directory.py` - Stub implementation
 
 ### Async/Await Design
 
@@ -77,8 +107,8 @@ results = await asyncio.gather(*tasks)
 ```
 
 This pattern is used in:
-- `app/routes/query.py`: User verification endpoint
-- `app/routes/comparison.py`: Cross-source user comparison
+- `app/routes/query.py`: User verification endpoint (`POST /verify`)
+- `app/routes/comparison.py`: Cross-source user comparison (`GET /compare`)
 
 ### Request Flow
 
@@ -93,6 +123,15 @@ Browser → Nginx (port 80) → FastAPI (port 8000)
                               ↓
                          JSON Response
 ```
+
+## API Endpoints
+
+- `POST /upload`: Upload CSV with usernames, returns parsed user list
+- `POST /verify`: Verify users across all sources, returns grid results
+- `GET /compare`: Enumerate and compare users from all sources (requires connector support)
+- `GET /health`: Health check
+- `GET /docs`: Swagger UI
+- `GET /`: Main web application
 
 ## Adding New Authentication Sources
 
@@ -139,18 +178,11 @@ self.register("ldap", LDAPConnector)
 - `app/main.py`: FastAPI app initialization, route registration, health endpoint
 - `app/models.py`: Pydantic models for request/response validation
 - `app/routes/upload.py`: CSV file upload and parsing
-- `app/routes/query.py`: User verification across connectors (POST /verify)
-- `app/routes/comparison.py`: Cross-source user comparison (GET /compare)
+- `app/routes/query.py`: User verification across connectors (`POST /verify`)
+- `app/routes/comparison.py`: Cross-source user comparison (`GET /compare`)
 - `app/connectors/__init__.py`: Connector registry (singleton pattern)
 - `app/connectors/base.py`: Abstract base class for all connectors
-
-## API Endpoints
-
-- `POST /upload`: Upload CSV with usernames, returns parsed user list
-- `POST /verify`: Verify users across all sources, returns grid results
-- `GET /compare`: Enumerate and compare users from all sources (requires connector support)
-- `GET /health`: Health check
-- `GET /docs`: Swagger UI
+- `app/connectors/okta.py`: **Complete Okta implementation** with SDK and pagination
 
 ## Important Patterns
 
@@ -164,7 +196,7 @@ All connector queries execute in parallel using `asyncio.gather()`. Never query 
 When implementing real connectors, handle errors within the connector and return `False` for authentication failures. Don't let exceptions bubble up unless it's a critical failure.
 
 ### 4. Config Pattern
-Connectors receive config dict in `__init__`. For Okta, use the SDK configuration format (JSON with orgUrl, authorizationMode, clientId, scopes, privateKey). For other connectors, use environment variables or config dicts as appropriate.
+Connectors receive config dict in `__init__`. Use `self.config.get('key')` to access configuration. All config should be loaded from environment variables or the `.env` file.
 
 ## Current Implementation Status
 
@@ -173,32 +205,25 @@ Connectors receive config dict in `__init__`. For Okta, use the SDK configuratio
 - Connector registry system
 - CSV upload/parsing
 - Parallel verification
-- Stub connectors (return hardcoded values)
+- Stub connectors for RADIUS and AD
 
 **Phase 3 (In Progress)**:
 - Okta connector: **COMPLETE** - Uses Okta Python SDK with Private Key authentication and full pagination
 - RADIUS connector: **PENDING** - Stub implementation
 - Active Directory connector: **PENDING** - Stub implementation
-- Proper error handling and timeouts
-- Retry logic for failed queries
 
-**When implementing remaining connectors**: Update individual connector files (radius.py, active_directory.py) with real implementations. The registry and routing logic requires no changes.
+**When implementing remaining connectors**: Update individual connector files (radius.py, active_directory.py) with real implementations. Reference `okta.py` for a complete working example. The registry and routing logic requires no changes.
 
 ## Common Tasks
 
 ### Debugging Connector Issues
-Check if connector is registered:
 ```python
 from app.connectors import get_registry
 registry = get_registry()
 print(registry.list_connector_ids())  # Should include your connector
-```
 
-### Testing Individual Connectors
-```python
-from app.connectors import get_registry
-registry = get_registry()
-connector = registry.get_connector("okta")
+# Test individual connector
+connector = registry.get_connector("okta", config_dict)
 result = await connector.authenticate_user("test.user")
 ```
 
@@ -206,6 +231,12 @@ result = await connector.authenticate_user("test.user")
 FastAPI logs go to stdout. Use `--log-level debug` for verbose output:
 ```bash
 uvicorn app.main:app --reload --log-level debug
+```
+
+### SSL Certificate Issues (macOS)
+The `run.sh` script automatically configures SSL certificates using certifi. If you encounter SSL errors when using uvicorn directly:
+```bash
+export SSL_CERT_FILE=$(python3 -c "import certifi; print(certifi.where())")
 ```
 
 ## Important Notes
@@ -216,4 +247,6 @@ uvicorn app.main:app --reload --log-level debug
 - **Config Validation**: Implement `validate_config()` to check for required configuration before queries
 - **Enumeration Optional**: Only implement `get_all_users()` if the auth source supports user listing
 - **Okta SDK**: The Okta connector uses the official Okta Python SDK (`from okta.client import Client`), not direct API calls
-- **Reference Implementation**: See `app/connectors/okta.py` for a complete working example of a real connector implementation
+- **Reference Implementation**: See `app/connectors/okta.py` for a complete working example of a real connector implementation with pagination
+- **Environment Variables**: Never hardcode credentials - always use `.env` file
+- **Git Security**: `.env` is in `.gitignore` - never commit credentials
