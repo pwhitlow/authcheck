@@ -55,3 +55,11 @@ htmlcov/
 
 # Logs
 *.log
+apitoken.txt
+
+# Employee/user data files
+okta_users.txt
+slack_employees.csv
+slack_usernames.txt
+verification_results.json
+file_info.json
