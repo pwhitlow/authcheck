@@ -99,7 +99,7 @@ async def compare_users() -> ComparisonResult:
         for connector_id in sources_with_data
     }
 
-    # Get Okta roles for all users
+    # Get Okta roles for all users (optimized batch fetch)
     user_roles = {}
     okta_connector = None
     for connector_id, display_name, connector in connector_info:
@@ -108,19 +108,20 @@ async def compare_users() -> ComparisonResult:
             break
 
     if okta_connector:
-        # Fetch roles for all users in parallel
-        role_tasks = [
-            okta_connector.get_user_details(username)
-            for username in sorted(all_users_set)
-        ]
-        role_results = await asyncio.gather(*role_tasks, return_exceptions=True)
+        try:
+            # Fetch all users with details in one batch operation
+            # This is much faster than calling get_user_details() for each user
+            all_user_details = await okta_connector.get_all_users_with_details(include_groups=False)
 
-        for username, details in zip(sorted(all_users_set), role_results):
-            if isinstance(details, Exception) or not details:
-                user_roles[username] = "n/a"
-            elif "user_role" in details:
-                user_roles[username] = details["user_role"]
-            else:
+            # Extract roles from the batch results
+            for username in all_users_set:
+                if username in all_user_details and "user_role" in all_user_details[username]:
+                    user_roles[username] = all_user_details[username]["user_role"]
+                else:
+                    user_roles[username] = "n/a"
+        except Exception:
+            # If batch fetch fails, fall back to n/a for all users
+            for username in all_users_set:
                 user_roles[username] = "n/a"
     else:
         # No Okta connector available

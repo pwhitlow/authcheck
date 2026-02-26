@@ -241,6 +241,126 @@ class OktaConnector(BaseConnector):
         except Exception as e:
             raise Exception(f"Failed to get users from Okta: {str(e)}")
 
+    async def get_all_users_with_details(self, include_groups: bool = True) -> Dict[str, Dict[str, Any]]:
+        """
+        Get all active users from Okta with their full details in one batch operation.
+
+        This is much more efficient than calling get_user_details() for each user individually
+        because it processes users as they're paginated and only makes 2 API calls per user
+        (groups + roles) instead of 3 (search + groups + roles).
+
+        Args:
+            include_groups: Whether to fetch group and role information (default True)
+
+        Returns:
+            Dictionary mapping usernames to their full details
+        """
+        if not self.client:
+            raise NotImplementedError("Okta client not configured")
+
+        user_details_map = {}
+
+        try:
+            # Query for all active users with pagination
+            query_parameters = {'filter': 'status eq "ACTIVE"'}
+
+            # Get first page
+            users, resp, err = await self.client.list_users(query_parameters)
+
+            if err:
+                raise Exception(f"Error retrieving users from Okta: {err}")
+
+            # Process first page
+            await self._process_user_batch(users, user_details_map, include_groups)
+
+            # Check for more pages and iterate through them
+            while resp.has_next():
+                users, err = await resp.next()
+                if err:
+                    raise Exception(f"Error retrieving next page from Okta: {err}")
+
+                await self._process_user_batch(users, user_details_map, include_groups)
+
+            return user_details_map
+
+        except Exception as e:
+            raise Exception(f"Failed to get users with details from Okta: {str(e)}")
+
+    async def _process_user_batch(self, users: List, user_details_map: Dict[str, Dict[str, Any]], include_groups: bool):
+        """
+        Process a batch of users and extract their details.
+
+        Args:
+            users: List of user objects from Okta
+            user_details_map: Dictionary to populate with user details
+            include_groups: Whether to fetch group and role information
+        """
+        for user in users:
+            if not hasattr(user, 'profile') or not hasattr(user.profile, 'login'):
+                continue
+
+            username = user.profile.login
+            profile = user.profile
+
+            # Build user details dictionary from profile
+            details = {
+                "username": username,
+                "email": username,
+                "status": user.status if hasattr(user, 'status') else 'UNKNOWN',
+                "source": "Okta"
+            }
+
+            # Extract profile information
+            if hasattr(profile, 'firstName'):
+                details["first_name"] = profile.firstName
+            if hasattr(profile, 'lastName'):
+                details["last_name"] = profile.lastName
+            if hasattr(profile, 'firstName') and hasattr(profile, 'lastName'):
+                details["full_name"] = f"{profile.firstName} {profile.lastName}"
+            if hasattr(profile, 'email'):
+                details["email"] = profile.email
+            if hasattr(profile, 'title'):
+                details["title"] = profile.title
+            if hasattr(profile, 'department'):
+                details["department"] = profile.department
+            if hasattr(profile, 'mobilePhone'):
+                details["mobile_phone"] = profile.mobilePhone
+            if hasattr(profile, 'userRole'):
+                raw_role = profile.userRole
+                details["user_role"] = self._translate_role(raw_role)
+                details["user_role_code"] = raw_role
+
+            # Optionally fetch groups and roles
+            if include_groups:
+                try:
+                    groups, resp, err = await self.client.list_user_groups(user.id)
+                    if not err and groups:
+                        group_names = []
+                        for group in groups:
+                            if hasattr(group, 'profile') and hasattr(group.profile, 'name'):
+                                group_names.append(group.profile.name)
+
+                        if group_names:
+                            details["groups"] = ", ".join(group_names)
+                            details["roles"] = ", ".join(group_names)
+                except Exception:
+                    pass
+
+                try:
+                    roles, resp, err = await self.client.list_assigned_roles_for_user(user.id)
+                    if not err and roles:
+                        role_names = []
+                        for role in roles:
+                            if hasattr(role, 'type'):
+                                role_names.append(role.type)
+
+                        if role_names:
+                            details["admin_roles"] = ", ".join(role_names)
+                except Exception:
+                    pass
+
+            user_details_map[username] = details
+
     def get_display_name(self) -> str:
         """Get human-readable name for this connector."""
         return "Okta"
