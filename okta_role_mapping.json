@@ -5,5 +5,7 @@
   "emp": "Employee",
   "int": "Trainee",
   "srv": "Service Account",
-  "grp": "Group"
+  "grp": "Group",
+  "asc": "Associate Company",
+  "clr": "Collaborator"
 }
