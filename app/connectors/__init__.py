@@ -4,6 +4,7 @@ from .okta import OktaConnector
 from .radius import RadiusConnector
 from .active_directory import ActiveDirectoryConnector
 from .adp import ADPConnector
+from .slack import SlackConnector
 
 
 class ConnectorRegistry:
@@ -20,6 +21,7 @@ class ConnectorRegistry:
         self.register("radius", RadiusConnector)
         self.register("active_directory", ActiveDirectoryConnector)
         self.register("adp", ADPConnector)
+        self.register("slack", SlackConnector)
 
     def register(self, connector_id: str, connector_class: type[BaseConnector]):
         """

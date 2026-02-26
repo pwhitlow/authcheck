@@ -7,3 +7,4 @@ python-dotenv==1.0.0
 pydantic==2.5.3
 ldap3==2.9.1
 okta==2.9.5
+aiohttp==3.9.3
