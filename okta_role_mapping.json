@@ -1,0 +1,10 @@
+{
+  "emp": "Employee",
+  "contractor": "Contractor",
+  "intern": "Intern",
+  "trainee": "Trainee",
+  "admin": "Administrator",
+  "vendor": "Vendor",
+  "consultant": "Consultant",
+  "temp": "Temporary Employee"
+}

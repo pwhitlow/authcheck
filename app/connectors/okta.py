@@ -1,4 +1,7 @@
 from typing import List, Optional, Dict, Any
+import json
+import os
+from pathlib import Path
 from .base import BaseConnector
 from okta.client import Client as OktaClient
 
@@ -21,10 +24,46 @@ class OktaConnector(BaseConnector):
         """
         super().__init__(config)
         self.client = None
+        self.role_mapping = self._load_role_mapping()
 
         # Initialize Okta client if config is provided
         if self.config:
             self.client = OktaClient(self.config)
+
+    def _load_role_mapping(self) -> Dict[str, str]:
+        """
+        Load role code to display name mapping from JSON file.
+
+        Returns:
+            Dictionary mapping role codes to display names
+        """
+        mapping_file = Path(__file__).parent.parent.parent / "okta_role_mapping.json"
+
+        if mapping_file.exists():
+            try:
+                with open(mapping_file, 'r') as f:
+                    return json.load(f)
+            except Exception:
+                pass
+
+        # Return empty dict if file doesn't exist or can't be read
+        return {}
+
+    def _translate_role(self, role_code: str) -> str:
+        """
+        Translate role code to human-readable name.
+
+        Args:
+            role_code: The role code from Okta
+
+        Returns:
+            Human-readable role name, or original code if no mapping exists
+        """
+        if not role_code:
+            return role_code
+
+        # Return mapped value if exists, otherwise return original code
+        return self.role_mapping.get(role_code.lower(), role_code)
 
     async def authenticate_user(self, username: str) -> bool:
         """
@@ -117,7 +156,10 @@ class OktaConnector(BaseConnector):
                 if hasattr(profile, 'mobilePhone'):
                     details["mobile_phone"] = profile.mobilePhone
                 if hasattr(profile, 'userRole'):
-                    details["user_role"] = profile.userRole
+                    # Store both raw code and translated version
+                    raw_role = profile.userRole
+                    details["user_role"] = self._translate_role(raw_role)
+                    details["user_role_code"] = raw_role  # Keep original code for reference
 
             # Get user's groups (which represent roles in Okta)
             try:
