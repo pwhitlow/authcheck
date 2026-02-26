@@ -292,7 +292,7 @@
             '<p style="color: #666; margin-bottom: 15px;">✓ = Account exists in system</p>' +
             '<div class="comparison-grid">' +
             '<table class="comparison-table">' +
-            '<thead><tr><th>Username</th>';
+            '<thead><tr><th>Username</th><th>Okta Role</th>';
 
         data.sources.forEach((source) => {
             tableHtml += `<th>${source}</th>`;
@@ -301,7 +301,9 @@
         tableHtml += "</tr></thead><tbody>";
 
         data.all_users.forEach((user) => {
+            const role = data.user_roles[user] || "n/a";
             tableHtml += `<tr><td class="user-cell"><a href="/user/${encodeURIComponent(user)}" class="user-link">${user}</a></td>`;
+            tableHtml += `<td style="text-align: center;">${role}</td>`;
 
             data.sources.forEach((source) => {
                 const exists = data.user_sources[user][source];
