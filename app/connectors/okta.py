@@ -116,6 +116,8 @@ class OktaConnector(BaseConnector):
                     details["department"] = profile.department
                 if hasattr(profile, 'mobilePhone'):
                     details["mobile_phone"] = profile.mobilePhone
+                if hasattr(profile, 'userRole'):
+                    details["user_role"] = profile.userRole
 
             # Get user's groups (which represent roles in Okta)
             try:

@@ -57,8 +57,11 @@ async def verify_users(request: VerifyRequest) -> VerificationResults:
     # Build results dictionary
     results = {}
 
+    # Sort users alphabetically for consistent display
+    sorted_users = sorted(request.users)
+
     # For each user, query all connectors in parallel
-    for username in request.users:
+    for username in sorted_users:
         user_results = {}
 
         # Create tasks for all connectors for this user
@@ -79,7 +82,7 @@ async def verify_users(request: VerifyRequest) -> VerificationResults:
     source_ids = [connector.get_connector_id() for connector in connectors]
 
     return VerificationResults(
-        users=request.users,
+        users=sorted_users,
         sources=source_ids,
         results=results,
         timestamp=datetime.now(),
