@@ -205,7 +205,7 @@ async def get_user_details(username: str):
             html_content += '        <div class="details-grid">\n'
 
             for key, value in details.items():
-                if value and key not in ["exists", "username"]:
+                if value and key not in ["exists", "username", "source", "user_role_code"]:
                     # Format the label
                     label = key.replace('_', ' ').title()
                     html_content += f"""
