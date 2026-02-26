@@ -3,6 +3,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from typing import Dict, Any, List
 import asyncio
+import json
+import os
 from pathlib import Path
 
 from app.connectors import get_registry
@@ -12,6 +14,22 @@ router = APIRouter()
 # Set up templates
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+def load_connector_config() -> Dict[str, Any]:
+    """Load connector configuration from environment and config files."""
+    connector_config = {}
+
+    # Load Okta configuration from ~/.okta_config if it exists
+    okta_config_path = os.path.expanduser("~/.okta_config")
+    if os.path.exists(okta_config_path):
+        try:
+            with open(okta_config_path, "r") as f:
+                connector_config["okta"] = json.load(f)
+        except Exception:
+            pass
+
+    return connector_config
 
 
 @router.get("/user/{username}", response_class=HTMLResponse)
@@ -26,7 +44,8 @@ async def get_user_details(username: str):
         HTML page with user details from all sources
     """
     registry = get_registry()
-    connectors = registry.get_all_connectors()
+    connector_config = load_connector_config()
+    connectors = registry.get_all_connectors(connector_config)
 
     # Query all connectors in parallel for this user's details
     tasks = [connector.get_user_details(username) for connector in connectors]
@@ -219,7 +238,8 @@ async def get_all_users():
         JSON with list of all users and their aggregated details
     """
     registry = get_registry()
-    connectors = registry.get_all_connectors()
+    connector_config = load_connector_config()
+    connectors = registry.get_all_connectors(connector_config)
 
     # Get all users from all connectors
     all_usernames = set()

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Dict, Any
 from .base import BaseConnector
 from okta.client import Client as OktaClient
 
@@ -66,6 +66,92 @@ class OktaConnector(BaseConnector):
         except Exception:
             # On any error, return False (user not found)
             return False
+
+    async def get_user_details(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed information about a user from Okta.
+
+        Args:
+            username: Username to search for
+
+        Returns:
+            Dictionary with user details including profile info, status, and groups/roles
+        """
+        if not self.client:
+            return None
+
+        try:
+            # Query Okta for user with matching login
+            query_parameters = {'filter': f'profile.login eq "{username}"'}
+            users, resp, err = await self.client.list_users(query_parameters)
+
+            if err or not users:
+                return None
+
+            # Get first matching user
+            user = users[0]
+
+            # Build user details dictionary
+            details = {
+                "username": username,
+                "email": username,
+                "status": user.status if hasattr(user, 'status') else 'UNKNOWN',
+                "source": "Okta"
+            }
+
+            # Extract profile information
+            if hasattr(user, 'profile'):
+                profile = user.profile
+                if hasattr(profile, 'firstName'):
+                    details["first_name"] = profile.firstName
+                if hasattr(profile, 'lastName'):
+                    details["last_name"] = profile.lastName
+                if hasattr(profile, 'firstName') and hasattr(profile, 'lastName'):
+                    details["full_name"] = f"{profile.firstName} {profile.lastName}"
+                if hasattr(profile, 'email'):
+                    details["email"] = profile.email
+                if hasattr(profile, 'title'):
+                    details["title"] = profile.title
+                if hasattr(profile, 'department'):
+                    details["department"] = profile.department
+                if hasattr(profile, 'mobilePhone'):
+                    details["mobile_phone"] = profile.mobilePhone
+
+            # Get user's groups (which represent roles in Okta)
+            try:
+                groups, resp, err = await self.client.list_user_groups(user.id)
+                if not err and groups:
+                    group_names = []
+                    for group in groups:
+                        if hasattr(group, 'profile') and hasattr(group.profile, 'name'):
+                            group_names.append(group.profile.name)
+
+                    if group_names:
+                        details["groups"] = ", ".join(group_names)
+                        details["roles"] = ", ".join(group_names)  # Alias for groups
+            except Exception:
+                # If we can't get groups, just continue without them
+                pass
+
+            # Get user's assigned roles (admin roles)
+            try:
+                roles, resp, err = await self.client.list_assigned_roles_for_user(user.id)
+                if not err and roles:
+                    role_names = []
+                    for role in roles:
+                        if hasattr(role, 'type'):
+                            role_names.append(role.type)
+
+                    if role_names:
+                        details["admin_roles"] = ", ".join(role_names)
+            except Exception:
+                # If we can't get admin roles, just continue without them
+                pass
+
+            return details
+
+        except Exception:
+            return None
 
     async def get_all_users(self) -> List[str]:
         """
