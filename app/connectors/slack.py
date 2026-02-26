@@ -1,5 +1,7 @@
 from typing import List, Optional, Dict, Any
 import aiohttp
+import ssl
+import certifi
 from pathlib import Path
 from .base import BaseConnector
 
@@ -82,7 +84,10 @@ class SlackConnector(BaseConnector):
         user_details_map = {}
 
         try:
-            async with aiohttp.ClientSession() as session:
+            # Create SSL context with certifi certificates for macOS compatibility
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+
+            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
                 cursor = None
                 while True:
                     # Build request URL with pagination
