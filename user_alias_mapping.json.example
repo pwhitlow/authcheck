@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "groups": [
+    {
+      "id": "user_001",
+      "emails": [
+        "john.doe@hudsonalpha.org",
+        "j.doe@contractor.com",
+        "john.d@external.org"
+      ],
+      "display_name": "John Doe (Multiple Accounts)"
+    },
+    {
+      "id": "user_002",
+      "emails": [
+        "jane.smith@hudsonalpha.org",
+        "jsmith@tempstaff.com"
+      ],
+      "display_name": "Jane Smith"
+    }
+  ]
+}

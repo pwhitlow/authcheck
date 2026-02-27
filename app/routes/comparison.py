@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Dict, List, Set
 from app.connectors import get_registry
+from app.utils.alias_resolver import get_user_group_resolver
 
 router = APIRouter()
 
@@ -29,11 +30,12 @@ def load_connector_config():
 class ComparisonResult(BaseModel):
     """Results from comparing users across all sources."""
 
-    all_users: List[str]  # Combined list of all unique users
+    all_users: List[str]  # Combined list of all unique users (may be group IDs)
     sources: List[str]  # List of source names that support enumeration
-    user_sources: Dict[str, Dict[str, bool]]  # {username: {source_id: found}}
+    user_sources: Dict[str, Dict[str, bool]]  # {group_id: {source_id: found}}
     source_counts: Dict[str, int]  # {source_id: user_count}
-    user_roles: Dict[str, str]  # {username: okta_role or "n/a"}
+    user_roles: Dict[str, str]  # {group_id: okta_role or "n/a"}
+    user_groups: Dict[str, List[str]]  # {group_id: [list_of_emails]}
     timestamp: datetime
 
 
@@ -93,11 +95,20 @@ async def compare_users() -> ComparisonResult:
                 username in source_users[connector_id]
             )
 
-    # Count users per source
-    source_counts = {
-        connector_id: len(source_users[connector_id])
-        for connector_id in sources_with_data
-    }
+    # Apply alias grouping/consolidation
+    resolver = get_user_group_resolver()
+    consolidated_matrix, group_details = resolver.consolidate_users(user_sources_matrix)
+
+    # Update all_users_set to group IDs and use consolidated matrix
+    all_users_set = set(consolidated_matrix.keys())
+    user_sources_matrix = consolidated_matrix
+
+    # Count users per source (based on consolidated groups)
+    source_counts = {}
+    for connector_id in sources_with_data:
+        count = sum(1 for group_data in consolidated_matrix.values()
+                   if group_data.get(connector_id, False))
+        source_counts[connector_id] = count
 
     # Get Okta roles for all users (optimized batch fetch)
     user_roles = {}
@@ -114,19 +125,28 @@ async def compare_users() -> ComparisonResult:
             all_user_details = await okta_connector.get_all_users_with_details(include_groups=False)
 
             # Extract roles from the batch results
-            for username in all_users_set:
-                if username in all_user_details and "user_role" in all_user_details[username]:
-                    user_roles[username] = all_user_details[username]["user_role"]
-                else:
-                    user_roles[username] = "n/a"
+            # For groups, use role from first email in group that has a role
+            for group_id in all_users_set:
+                group_emails = resolver.get_group_emails(group_id)
+                role_found = False
+
+                # Try each email in group until we find a role
+                for email in group_emails:
+                    if email in all_user_details and "user_role" in all_user_details[email]:
+                        user_roles[group_id] = all_user_details[email]["user_role"]
+                        role_found = True
+                        break
+
+                if not role_found:
+                    user_roles[group_id] = "n/a"
         except Exception:
             # If batch fetch fails, fall back to n/a for all users
-            for username in all_users_set:
-                user_roles[username] = "n/a"
+            for group_id in all_users_set:
+                user_roles[group_id] = "n/a"
     else:
         # No Okta connector available
-        for username in all_users_set:
-            user_roles[username] = "n/a"
+        for group_id in all_users_set:
+            user_roles[group_id] = "n/a"
 
     return ComparisonResult(
         all_users=sorted(list(all_users_set), key=str.lower),
@@ -134,5 +154,6 @@ async def compare_users() -> ComparisonResult:
         user_sources=user_sources_matrix,
         source_counts=source_counts,
         user_roles=user_roles,
+        user_groups=group_details,
         timestamp=datetime.now(),
     )

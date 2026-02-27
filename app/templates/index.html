@@ -254,7 +254,8 @@
     .user-cell {
         font-weight: 500;
         color: #111013;
-        min-width: 150px;
+        min-width: 200px;
+        line-height: 1.6;
     }
 
     .user-link {
@@ -266,6 +267,17 @@
     .user-link:hover {
         color: #111013;
         text-decoration: underline;
+    }
+
+    .grouped-badge {
+        background: #17a2b8;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 600;
+        margin-left: 8px;
+        white-space: nowrap;
     }
 
     .found {
@@ -410,21 +422,35 @@
 
         tableHtml += "</tr></thead><tbody id='comparison-tbody'>";
 
-        data.all_users.forEach((user) => {
-            const role = data.user_roles[user] || "n/a";
+        data.all_users.forEach((groupId) => {
+            const role = data.user_roles[groupId] || "n/a";
+            const emails = data.user_groups[groupId] || [groupId];
 
             // Build data attributes for filtering
             let dataAttrs = `data-role="${role}"`;
             data.sources.forEach((source) => {
-                const exists = data.user_sources[user][source];
+                const exists = data.user_sources[groupId][source];
                 dataAttrs += ` data-${source}="${exists ? 'found' : 'not-found'}"`;
             });
 
-            tableHtml += `<tr ${dataAttrs}><td class="user-cell"><a href="/user/${encodeURIComponent(user)}" class="user-link">${user}</a></td>`;
+            // Display all emails in the group
+            let emailsHtml = `<a href="/user/${encodeURIComponent(emails[0])}" class="user-link">${emails[0]}</a>`;
+            if (emails.length > 1) {
+                // Additional emails on separate lines with smaller font
+                const additionalEmails = emails.slice(1).map(
+                    email => `<br><span style="font-size: 12px; color: #666; padding-left: 10px;">↳ ${email}</span>`
+                ).join('');
+                emailsHtml += additionalEmails;
+
+                // Add grouped badge
+                emailsHtml += ` <span class="grouped-badge">GROUPED (${emails.length})</span>`;
+            }
+
+            tableHtml += `<tr ${dataAttrs}><td class="user-cell">${emailsHtml}</td>`;
             tableHtml += `<td style="text-align: center;">${role}</td>`;
 
             data.sources.forEach((source) => {
-                const exists = data.user_sources[user][source];
+                const exists = data.user_sources[groupId][source];
                 const symbol = exists ? "✓" : "✗";
                 const className = exists ? "found" : "not-found";
                 tableHtml += `<td class="${className}">${symbol}</td>`;

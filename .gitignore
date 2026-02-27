@@ -66,3 +66,4 @@ file_info.json
 
 # Okta role mapping (optional, can be customized per installation)
 # okta_role_mapping.json
+user_alias_mapping.json
