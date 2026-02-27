@@ -1,6 +1,8 @@
 import asyncio
 import os
-from typing import Optional, List
+import json
+from typing import Optional, List, Dict, Any
+from pathlib import Path
 from ldap3 import Server, Connection, ALL, Tls
 import ssl
 from .base import BaseConnector
@@ -12,6 +14,19 @@ class ActiveDirectoryConnector(BaseConnector):
     def __init__(self, config: dict = None):
         """Initialize Active Directory connector with configuration."""
         super().__init__(config)
+
+        # Try to load from ~/.ad_config if no config provided
+        if not config or not config.get("server"):
+            ad_config_path = Path.home() / ".ad_config"
+            if ad_config_path.exists():
+                try:
+                    with open(ad_config_path, 'r') as f:
+                        file_config = json.load(f)
+                        # Merge file config with provided config
+                        self.config = {**file_config, **(config or {})}
+                except Exception:
+                    pass
+
         self.server_address = (
             self.config.get("server") or os.getenv("AD_SERVER")
         )
@@ -25,7 +40,7 @@ class ActiveDirectoryConnector(BaseConnector):
         self.base_dn = self.config.get("base_dn") or os.getenv("AD_BASE_DN")
         self.bind_dn = self.config.get("bind_dn") or os.getenv("AD_BIND_DN")
         self.bind_password = (
-            self.config.get("bind_password") or os.getenv("AD_BIND_PASSWORD")
+            self.config.get("password") or self.config.get("bind_password") or os.getenv("AD_BIND_PASSWORD")
         )
         self.timeout = int(
             self.config.get("timeout") or os.getenv("AD_TIMEOUT", "10")
@@ -48,9 +63,17 @@ class ActiveDirectoryConnector(BaseConnector):
         Returns:
             True if user exists and is enabled, False otherwise
         """
-        # Stub implementation - not configured
-        # TODO: Implement actual AD authentication when config is available
-        return True
+        if not self.validate_config():
+            raise ValueError(
+                "Active Directory configuration is invalid or incomplete"
+            )
+
+        try:
+            # Run LDAP operations in thread pool
+            return await asyncio.to_thread(self._check_user_exists, username)
+        except Exception as e:
+            print(f"Active Directory error: {e}")
+            return False
 
     def _check_user_exists(self, username: str) -> bool:
         """
@@ -217,6 +240,116 @@ class ActiveDirectoryConnector(BaseConnector):
 
         except Exception as e:
             raise
+
+    async def get_user_details(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed information about a user from Active Directory.
+
+        Args:
+            username: Username to search for
+
+        Returns:
+            Dictionary with user details or None if not found
+        """
+        if not self.validate_config():
+            return None
+
+        try:
+            return await asyncio.to_thread(self._get_user_details_sync, username)
+        except Exception:
+            return None
+
+    def _get_user_details_sync(self, username: str) -> Optional[Dict[str, Any]]:
+        """Synchronous method to get user details from Active Directory."""
+        try:
+            # Create TLS configuration if SSL is enabled
+            tls = None
+            if self.use_ssl:
+                tls = Tls(validate=ssl.CERT_NONE)
+
+            # Create LDAP server connection
+            server = Server(
+                self.server_address,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                tls=tls,
+                get_info=ALL,
+                connect_timeout=self.timeout,
+            )
+
+            # Connect and bind with service account
+            conn = Connection(
+                server,
+                user=self.bind_dn,
+                password=self.bind_password,
+                auto_bind=True,
+            )
+
+            try:
+                # Try each search attribute
+                for attr in self.search_attributes:
+                    search_filter = f"({attr}={username})"
+
+                    # Search for the user with all standard attributes
+                    conn.search(
+                        search_base=self.base_dn,
+                        search_filter=search_filter,
+                        attributes=[
+                            "sAMAccountName", "userPrincipalName", "mail",
+                            "cn", "givenName", "sn", "displayName",
+                            "title", "department", "telephoneNumber",
+                            "mobile", "userAccountControl"
+                        ],
+                    )
+
+                    if conn.entries:
+                        entry = conn.entries[0]
+
+                        # Build user details dictionary
+                        details = {
+                            "username": username,
+                            "source": "Active Directory",
+                        }
+
+                        # Add available attributes
+                        if hasattr(entry, 'sAMAccountName') and entry.sAMAccountName.value:
+                            details["sam_account_name"] = entry.sAMAccountName.value
+                        if hasattr(entry, 'userPrincipalName') and entry.userPrincipalName.value:
+                            details["email"] = entry.userPrincipalName.value
+                        if hasattr(entry, 'mail') and entry.mail.value:
+                            details["email"] = entry.mail.value
+                        if hasattr(entry, 'cn') and entry.cn.value:
+                            details["full_name"] = entry.cn.value
+                        if hasattr(entry, 'givenName') and entry.givenName.value:
+                            details["first_name"] = entry.givenName.value
+                        if hasattr(entry, 'sn') and entry.sn.value:
+                            details["last_name"] = entry.sn.value
+                        if hasattr(entry, 'displayName') and entry.displayName.value:
+                            details["display_name"] = entry.displayName.value
+                        if hasattr(entry, 'title') and entry.title.value:
+                            details["title"] = entry.title.value
+                        if hasattr(entry, 'department') and entry.department.value:
+                            details["department"] = entry.department.value
+                        if hasattr(entry, 'telephoneNumber') and entry.telephoneNumber.value:
+                            details["phone"] = entry.telephoneNumber.value
+                        if hasattr(entry, 'mobile') and entry.mobile.value:
+                            details["mobile_phone"] = entry.mobile.value
+
+                        # Add account status
+                        if hasattr(entry, 'userAccountControl'):
+                            user_account_control = int(entry.userAccountControl.value)
+                            is_enabled = not (user_account_control & 0x0002)
+                            details["status"] = "active" if is_enabled else "disabled"
+
+                        return details
+
+                return None
+
+            finally:
+                conn.unbind()
+
+        except Exception:
+            return None
 
     def get_display_name(self) -> str:
         """Get human-readable name for this connector."""
