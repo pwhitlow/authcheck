@@ -197,132 +197,21 @@
 <div id="app">
     <div id="alert-container"></div>
 
-    <!-- Tabs for different modes -->
-    <div style="margin-bottom: 30px; border-bottom: 1px solid rgba(150, 144, 162, 0.15);">
-        <button
-            id="tab-compare"
-            class="tab-button active"
-            onclick="switchTab('compare')"
-            style="
-                background: none;
-                border: none;
-                border-bottom: 2px solid #dc2828;
-                padding: 12px 24px;
-                font-family: 'DM Sans', sans-serif;
-                font-size: 16px;
-                font-weight: 700;
-                cursor: pointer;
-                color: #111013;
-                margin-right: 20px;
-                transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-                letter-spacing: -0.02em;
-            "
-        >
-            Compare All Users
-        </button>
-        <button
-            id="tab-verify"
-            class="tab-button"
-            onclick="switchTab('verify')"
-            style="
-                background: none;
-                border: none;
-                border-bottom: 2px solid transparent;
-                padding: 12px 24px;
-                font-family: 'DM Sans', sans-serif;
-                font-size: 16px;
-                font-weight: 700;
-                cursor: pointer;
-                color: rgba(17, 16, 19, 0.5);
-                margin-right: 20px;
-                transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-                letter-spacing: -0.02em;
-            "
-        >
-            Verify Specific Users
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.75rem;">Compare Users Across All Systems</h2>
+    <p style="color: rgba(17, 16, 19, 0.6); margin-bottom: 20px;">
+        Query all available authentication sources and compare which users exist in each system.
+    </p>
+
+    <div class="button-group">
+        <button class="btn-primary" id="compare-btn" onclick="handleCompare()">
+            🚀 Start Comparison
         </button>
     </div>
 
-    <!-- Compare All Users Tab -->
-    <div id="tab-content-compare" class="tab-content">
-        <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.75rem;">Compare Users Across All Systems</h2>
-        <p style="color: rgba(17, 16, 19, 0.6); margin-bottom: 20px;">
-            Query all available authentication sources and compare which users exist in each system.
-        </p>
-
-        <div class="button-group">
-            <button class="btn-primary" id="compare-btn" onclick="handleCompare()">
-                Start Comparison
-            </button>
-        </div>
-
-        <div id="comparison-results" style="display: none; margin-top: 40px;"></div>
-    </div>
-
-    <!-- Verify Specific Users Tab -->
-    <div id="tab-content-verify" class="tab-content" style="display: none;">
-        <h2 style="margin-bottom: 30px;">Upload User List for Verification</h2>
-
-        <div class="form-group">
-            <label for="csv-file">Select CSV File</label>
-            <input type="file" id="csv-file" accept=".csv" />
-            <small style="color: #666; margin-top: 5px; display: block;">
-                Format: CSV with usernames in the first column (optional header)
-            </small>
-        </div>
-
-        <div style="text-align: center; margin: 30px 0; color: #999;">
-            — or —
-        </div>
-
-        <div class="form-group">
-            <label for="remote-url">Fetch from Remote URL (Optional)</label>
-            <input
-                type="text"
-                id="remote-url"
-                placeholder="https://example.com/users.csv"
-            />
-            <small style="color: #666; margin-top: 5px; display: block;">
-                Leave blank to use CSV file above
-            </small>
-        </div>
-
-        <div class="button-group">
-            <button class="btn-primary" id="upload-btn" onclick="handleUpload()">
-                Upload & Parse
-            </button>
-            <button class="btn-secondary" id="verify-btn" onclick="handleVerify()" disabled>
-                Verify Users
-            </button>
-            <button class="btn-secondary" onclick="resetForm()">Reset</button>
-        </div>
-
-        <div id="users-list" style="display: none; margin-top: 30px;">
-            <h3>Loaded Users</h3>
-            <div
-                id="users-container"
-                style="
-                    background: #f9f9f9;
-                    padding: 15px;
-                    border-radius: 4px;
-                    max-height: 300px;
-                    overflow-y: auto;
-                    border: 1px solid #ddd;
-                "
-            ></div>
-            <small id="user-count" style="display: block; margin-top: 10px; color: #666;"></small>
-        </div>
-
-        <div id="results-container" style="display: none; margin-top: 40px;"></div>
-    </div>
+    <div id="comparison-results" style="display: none; margin-top: 40px;"></div>
 </div>
 
 <style>
-    .tab-button.active {
-        border-bottom-color: #dc2828 !important;
-        color: #111013 !important;
-    }
-
     .comparison-grid {
         overflow-x: auto;
         margin: 20px 0;
@@ -434,25 +323,7 @@
 </style>
 
 <script>
-    let currentUsers = [];
     let comparisonData = null;
-
-    function switchTab(tabName) {
-        // Hide all tabs
-        document.getElementById("tab-content-compare").style.display = "none";
-        document.getElementById("tab-content-verify").style.display = "none";
-
-        // Remove active class from all buttons
-        document.getElementById("tab-compare").classList.remove("active");
-        document.getElementById("tab-verify").classList.remove("active");
-
-        // Show selected tab
-        document.getElementById("tab-content-" + tabName).style.display = "block";
-        document.getElementById("tab-" + tabName).classList.add("active");
-
-        // Save active tab to sessionStorage
-        sessionStorage.setItem('activeTab', tabName);
-    }
 
     function showAlert(message, type = "success") {
         const alertContainer = document.getElementById("alert-container");
@@ -465,8 +336,6 @@
             alert.remove();
         }, 5000);
     }
-
-    // ===== COMPARE ALL USERS =====
 
     async function handleCompare() {
         const compareBtn = document.getElementById("compare-btn");
@@ -619,178 +488,8 @@
         });
     }
 
-    // ===== VERIFY SPECIFIC USERS =====
-
-    async function handleUpload() {
-        const fileInput = document.getElementById("csv-file");
-        const remoteUrl = document.getElementById("remote-url").value.trim();
-
-        if (!fileInput.files.length && !remoteUrl) {
-            showAlert("Please select a CSV file or provide a remote URL", "error");
-            return;
-        }
-
-        const uploadBtn = document.getElementById("upload-btn");
-        uploadBtn.disabled = true;
-        uploadBtn.innerHTML = '<span class="loading"></span>Uploading...';
-
-        try {
-            let response;
-
-            if (fileInput.files.length) {
-                const formData = new FormData();
-                formData.append("file", fileInput.files[0]);
-                response = await fetch("/upload", {
-                    method: "POST",
-                    body: formData,
-                });
-            } else {
-                showAlert(
-                    "Remote fetch not yet implemented. Please upload a CSV file.",
-                    "error"
-                );
-                uploadBtn.disabled = false;
-                uploadBtn.innerHTML = "Upload & Parse";
-                return;
-            }
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || "Upload failed");
-            }
-
-            const data = await response.json();
-            currentUsers = data.users;
-            sessionStorage.setItem('currentUsers', JSON.stringify(currentUsers));
-
-            displayUsers(data.users);
-            document.getElementById("verify-btn").disabled = false;
-            showAlert(`Successfully loaded ${data.user_count} users`, "success");
-        } catch (error) {
-            showAlert(`Error: ${error.message}`, "error");
-        } finally {
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = "Upload & Parse";
-        }
-    }
-
-    function displayUsers(users) {
-        const container = document.getElementById("users-container");
-        const usersList = document.getElementById("users-list");
-        const userCount = document.getElementById("user-count");
-
-        container.innerHTML = users
-            .map(
-                (user) =>
-                    `<div style="padding: 5px 0; border-bottom: 1px solid #e0e0e0; font-size: 13px;">
-            ${user}
-        </div>`
-            )
-            .join("");
-
-        userCount.textContent = `Total: ${users.length} users`;
-        usersList.style.display = "block";
-    }
-
-    async function handleVerify() {
-        if (!currentUsers.length) {
-            showAlert("No users loaded. Please upload a CSV file first.", "error");
-            return;
-        }
-
-        const verifyBtn = document.getElementById("verify-btn");
-        verifyBtn.disabled = true;
-        verifyBtn.innerHTML = '<span class="loading"></span>Verifying...';
-
-        try {
-            const response = await fetch("/verify", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ users: currentUsers }),
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || "Verification failed");
-            }
-
-            const data = await response.json();
-            sessionStorage.setItem('verificationData', JSON.stringify(data));
-            sessionStorage.setItem('currentUsers', JSON.stringify(currentUsers));
-            displayResults(data);
-            showAlert("Verification completed successfully", "success");
-        } catch (error) {
-            showAlert(`Error: ${error.message}`, "error");
-        } finally {
-            verifyBtn.disabled = false;
-            verifyBtn.innerHTML = "Verify Users";
-        }
-    }
-
-    function displayResults(data) {
-        const resultsContainer = document.getElementById("results-container");
-
-        // Build table
-        let html = "<h3>Verification Results</h3>";
-        html += '<table style="width: 100%; border-collapse: collapse;">';
-
-        // Header row
-        html += "<thead>";
-        html += "<tr style='background: #f0f0f0; border-bottom: 2px solid #ddd;'>";
-        html += '<th style="padding: 12px; text-align: left; font-weight: 500;">Username</th>';
-        data.sources.forEach((source) => {
-            html += `<th style="padding: 12px; text-align: center; font-weight: 500;">${source}</th>`;
-        });
-        html += "</tr>";
-        html += "</thead>";
-
-        // Data rows
-        html += "<tbody>";
-        data.users.forEach((user) => {
-            html += `<tr style="border-bottom: 1px solid #e0e0e0;">`;
-            html += `<td style="padding: 12px; font-weight: 500;"><a href="/user/${encodeURIComponent(user)}" class="user-link">${user}</a></td>`;
-            data.sources.forEach((source) => {
-                const exists = data.results[user][source];
-                const symbol = exists ? "✓" : "✗";
-                const color = exists ? "#28a745" : "#dc3545";
-                html += `<td style="padding: 12px; text-align: center; color: ${color}; font-size: 18px; font-weight: bold;">${symbol}</td>`;
-            });
-            html += "</tr>";
-        });
-        html += "</tbody>";
-
-        html += "</table>";
-
-        html +=
-            '<small style="display: block; margin-top: 15px; color: #666;">Last updated: ' +
-            new Date(data.timestamp).toLocaleString() +
-            "</small>";
-
-        resultsContainer.innerHTML = html;
-        resultsContainer.style.display = "block";
-    }
-
-    function resetForm() {
-        document.getElementById("csv-file").value = "";
-        document.getElementById("remote-url").value = "";
-        document.getElementById("alert-container").innerHTML = "";
-        document.getElementById("users-list").style.display = "none";
-        document.getElementById("results-container").style.display = "none";
-        document.getElementById("verify-btn").disabled = true;
-        currentUsers = [];
-    }
-
     // Restore cached data on page load
     function restoreCachedData() {
-        // Restore active tab
-        const activeTab = sessionStorage.getItem('activeTab');
-        if (activeTab) {
-            switchTab(activeTab);
-        }
-
-        // Restore comparison data
         const savedComparisonData = sessionStorage.getItem('comparisonData');
         if (savedComparisonData) {
             try {
@@ -818,21 +517,6 @@
                 }
             } catch (e) {
                 console.error('Failed to restore comparison data:', e);
-            }
-        }
-
-        // Restore verification data
-        const verificationData = sessionStorage.getItem('verificationData');
-        const savedUsers = sessionStorage.getItem('currentUsers');
-        if (verificationData && savedUsers) {
-            try {
-                const data = JSON.parse(verificationData);
-                currentUsers = JSON.parse(savedUsers);
-                displayResults(data);
-                displayUsers(currentUsers);
-                document.getElementById("verify-btn").disabled = false;
-            } catch (e) {
-                console.error('Failed to restore verification data:', e);
             }
         }
     }
