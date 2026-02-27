@@ -233,15 +233,26 @@ class ActiveDirectoryConnector(BaseConnector):
                 conn.search(
                     search_base=self.base_dn,
                     search_filter=search_filter,
-                    attributes=["sAMAccountName"],
+                    attributes=["sAMAccountName", "mail", "userPrincipalName"],
                     paged_size=500,  # Use paging for large results
                 )
 
-                # Extract sAMAccountName from each user
+                # Extract email address or construct from sAMAccountName
                 for entry in conn.entries:
-                    sam_account = entry.sAMAccountName.value
-                    if sam_account:
-                        all_users.append(sam_account)
+                    # Try to get email from mail attribute first
+                    email = None
+                    if hasattr(entry, 'mail') and entry.mail.value:
+                        email = entry.mail.value
+                    elif hasattr(entry, 'userPrincipalName') and entry.userPrincipalName.value:
+                        email = entry.userPrincipalName.value
+                    else:
+                        # Fall back to sAMAccountName@hudsonalpha.org
+                        sam_account = entry.sAMAccountName.value
+                        if sam_account:
+                            email = f"{sam_account}@hudsonalpha.org"
+
+                    if email:
+                        all_users.append(email.lower())
 
                 return all_users
 
