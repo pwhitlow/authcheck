@@ -213,11 +213,21 @@ class ActiveDirectoryConnector(BaseConnector):
             )
 
             try:
-                # Search for all enabled user objects
-                # userAccountControl: 0x0002 = ACCOUNTDISABLE bit
-                # Use bitwise filter to exclude disabled accounts
+                # Search for all enabled user objects (real users only, not computers/services)
+                # Filters:
+                # - objectCategory=person (more specific than objectClass=user)
+                # - objectClass=user (user objects)
+                # - !(userAccountControl:1.2.840.113556.1.4.803:=2) (not disabled)
+                # - !(sAMAccountName=*$) (exclude computer accounts ending with $)
+                # - mail=* (require email address to filter out service accounts)
                 search_filter = (
-                    "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+                    "(&"
+                    "(objectCategory=person)"
+                    "(objectClass=user)"
+                    "(!(userAccountControl:1.2.840.113556.1.4.803:=2))"
+                    "(!(sAMAccountName=*$))"
+                    "(mail=*)"
+                    ")"
                 )
 
                 conn.search(
