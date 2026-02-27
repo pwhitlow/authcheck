@@ -509,41 +509,49 @@
 
         statsHtml += "</div>";
 
-        // Get unique roles for filter
+        // Get unique roles for Okta Role filter
         const uniqueRoles = [...new Set(Object.values(data.user_roles))].sort();
 
-        // Build filter dropdown
-        let filterHtml = '<div style="margin: 20px 0;">' +
-            '<label for="role-filter" style="font-weight: 500; margin-right: 10px;">Filter by Role:</label>' +
-            '<select id="role-filter" onchange="filterComparisonByRole()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 200px;">' +
-            '<option value="all">All Roles</option>';
-
-        uniqueRoles.forEach(role => {
-            filterHtml += `<option value="${role}">${role}</option>`;
-        });
-
-        filterHtml += '</select>' +
-            '<span id="filtered-count" style="margin-left: 15px; color: #666;"></span>' +
-            '</div>';
-
-        // Build comparison table
+        // Build comparison table with column filters
         let tableHtml =
             '<h3>User Comparison Matrix</h3>' +
-            '<p style="color: #666; margin-bottom: 15px;">✓ = Account exists in system</p>' +
-            filterHtml +
+            '<p style="color: #666; margin-bottom: 15px;">✓ = Account exists in system | Use dropdowns to filter each column</p>' +
             '<div class="comparison-grid">' +
             '<table class="comparison-table">' +
-            '<thead><tr><th>Username</th><th>Okta Role</th>';
+            '<thead>' +
+            '<tr><th>Username</th>' +
+            '<th>Okta Role<br><select class="column-filter" data-column="role" onchange="filterComparison()" style="margin-top: 5px; padding: 4px; font-size: 12px; font-weight: 400; width: 100%; max-width: 150px;">' +
+            '<option value="all">All</option>';
+
+        uniqueRoles.forEach(role => {
+            tableHtml += `<option value="${role}">${role}</option>`;
+        });
+
+        tableHtml += '</select></th>';
 
         data.sources.forEach((source) => {
-            tableHtml += `<th>${source}</th>`;
+            tableHtml += `<th>${source}<br><select class="column-filter" data-column="${source}" onchange="filterComparison()" style="margin-top: 5px; padding: 4px; font-size: 12px; font-weight: 400; width: 100%; max-width: 120px;">` +
+                '<option value="all">All</option>' +
+                '<option value="found">✓ Found</option>' +
+                '<option value="not-found">✗ Not Found</option>' +
+                '</select></th>';
         });
+
+        tableHtml += '</tr></thead><tbody id="comparison-tbody">';
 
         tableHtml += "</tr></thead><tbody id='comparison-tbody'>";
 
         data.all_users.forEach((user) => {
             const role = data.user_roles[user] || "n/a";
-            tableHtml += `<tr data-role="${role}"><td class="user-cell"><a href="/user/${encodeURIComponent(user)}" class="user-link">${user}</a></td>`;
+
+            // Build data attributes for filtering
+            let dataAttrs = `data-role="${role}"`;
+            data.sources.forEach((source) => {
+                const exists = data.user_sources[user][source];
+                dataAttrs += ` data-${source}="${exists ? 'found' : 'not-found'}"`;
+            });
+
+            tableHtml += `<tr ${dataAttrs}><td class="user-cell"><a href="/user/${encodeURIComponent(user)}" class="user-link">${user}</a></td>`;
             tableHtml += `<td style="text-align: center;">${role}</td>`;
 
             data.sources.forEach((source) => {
@@ -567,37 +575,48 @@
         updateFilteredCount();
     }
 
-    function filterComparisonByRole() {
+    function filterComparison() {
         if (!comparisonData) return;
 
-        const selectedRole = document.getElementById("role-filter").value;
         const rows = document.querySelectorAll("#comparison-tbody tr");
+        const filters = document.querySelectorAll(".column-filter");
 
-        // Save filter state
-        sessionStorage.setItem('roleFilter', selectedRole);
-
-        rows.forEach(row => {
-            if (selectedRole === "all" || row.dataset.role === selectedRole) {
-                row.style.display = "";
-            } else {
-                row.style.display = "none";
+        // Collect all active filters
+        const activeFilters = {};
+        filters.forEach(select => {
+            const column = select.dataset.column;
+            const value = select.value;
+            if (value !== "all") {
+                activeFilters[column] = value;
             }
         });
 
-        updateFilteredCount();
-    }
+        // Save filter state
+        sessionStorage.setItem('columnFilters', JSON.stringify(activeFilters));
 
-    function updateFilteredCount() {
-        const selectedRole = document.getElementById("role-filter")?.value;
-        const totalRows = document.querySelectorAll("#comparison-tbody tr").length;
-        const visibleRows = document.querySelectorAll("#comparison-tbody tr:not([style*='display: none'])").length;
-        const countElement = document.getElementById("filtered-count");
+        // Apply filters to each row
+        rows.forEach(row => {
+            let shouldShow = true;
 
-        if (countElement && selectedRole !== "all") {
-            countElement.textContent = `Showing ${visibleRows} of ${totalRows} users`;
-        } else if (countElement) {
-            countElement.textContent = "";
-        }
+            // Check each active filter
+            for (const [column, filterValue] of Object.entries(activeFilters)) {
+                if (column === "role") {
+                    // Filter by Okta Role
+                    if (row.dataset.role !== filterValue) {
+                        shouldShow = false;
+                        break;
+                    }
+                } else {
+                    // Filter by source (found/not-found)
+                    if (row.dataset[column] !== filterValue) {
+                        shouldShow = false;
+                        break;
+                    }
+                }
+            }
+
+            row.style.display = shouldShow ? "" : "none";
+        });
     }
 
     // ===== VERIFY SPECIFIC USERS =====
@@ -779,12 +798,22 @@
                 displayComparison(data);
 
                 // Restore filter state
-                const savedFilter = sessionStorage.getItem('roleFilter');
-                if (savedFilter) {
-                    const filterSelect = document.getElementById('role-filter');
-                    if (filterSelect) {
-                        filterSelect.value = savedFilter;
-                        filterComparisonByRole();
+                const savedFilters = sessionStorage.getItem('columnFilters');
+                if (savedFilters) {
+                    try {
+                        const filters = JSON.parse(savedFilters);
+                        const filterSelects = document.querySelectorAll('.column-filter');
+
+                        filterSelects.forEach(select => {
+                            const column = select.dataset.column;
+                            if (filters[column]) {
+                                select.value = filters[column];
+                            }
+                        });
+
+                        filterComparison();
+                    } catch (e) {
+                        console.error('Failed to restore filters:', e);
                     }
                 }
             } catch (e) {
