@@ -115,8 +115,16 @@ async def get_user_details(username: str):
 <!DOCTYPE html>
 <html>
 <head>
-    <title>User Details - {username}</title>
+    <title>User Details - {username} | HudsonAlpha AuthCheck</title>
     <style>
+        :root {{
+            --ha-blue: #0081C6;
+            --ha-yellow: #FFE800;
+            --ha-cyan: #00AEEF;
+            --ha-light-gray: #E2E3E4;
+            --ha-medium-gray: #92949A;
+            --ha-dark-gray: #4D5452;
+        }}
         body {{
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             max-width: 1200px;
@@ -130,23 +138,25 @@ async def get_user_details(username: str):
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-top: 4px solid var(--ha-yellow);
         }}
         h1 {{
             margin: 0 0 10px 0;
-            color: #333;
+            color: var(--ha-blue);
         }}
         .username {{
-            color: #666;
+            color: var(--ha-medium-gray);
             font-size: 18px;
         }}
         .back-link {{
             display: inline-block;
             margin-bottom: 20px;
-            color: #0066cc;
+            color: var(--ha-blue);
             text-decoration: none;
         }}
         .back-link:hover {{
             text-decoration: underline;
+            color: var(--ha-cyan);
         }}
         .connector-card {{
             background: white;
@@ -154,6 +164,7 @@ async def get_user_details(username: str):
             border-radius: 8px;
             margin-bottom: 15px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--ha-blue);
         }}
         .connector-header {{
             display: flex;
@@ -161,12 +172,12 @@ async def get_user_details(username: str):
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid var(--ha-light-gray);
         }}
         .connector-name {{
             font-size: 20px;
             font-weight: 600;
-            color: #333;
+            color: var(--ha-blue);
         }}
         .status-badge {{
             padding: 6px 12px;
@@ -175,12 +186,12 @@ async def get_user_details(username: str):
             font-weight: 500;
         }}
         .status-found {{
-            background: #d4edda;
-            color: #155724;
+            background: var(--ha-blue);
+            color: white;
         }}
         .status-not-found {{
-            background: #f8d7da;
-            color: #721c24;
+            background: var(--ha-light-gray);
+            color: var(--ha-dark-gray);
         }}
         .details-grid {{
             display: grid;
@@ -222,25 +233,26 @@ async def get_user_details(username: str):
             transition: all 0.3s;
         }}
         .btn-primary {{
-            background: #0066cc;
+            background: var(--ha-blue);
             color: white;
         }}
         .btn-primary:hover {{
-            background: #0052a3;
+            background: var(--ha-cyan);
         }}
         .btn-danger {{
-            background: #dc3545;
+            background: var(--ha-medium-gray);
             color: white;
         }}
         .btn-danger:hover {{
-            background: #c82333;
+            background: var(--ha-dark-gray);
         }}
         .btn-secondary {{
-            background: #6c757d;
-            color: white;
+            background: var(--ha-light-gray);
+            color: var(--ha-dark-gray);
         }}
         .btn-secondary:hover {{
-            background: #545b62;
+            background: var(--ha-medium-gray);
+            color: white;
         }}
         .merge-container, .split-container {{
             background: white;
@@ -265,12 +277,13 @@ async def get_user_details(username: str):
             margin-right: 10px;
         }}
         .grouped-badge {{
-            background: #17a2b8;
-            color: white;
+            background: var(--ha-yellow);
+            color: var(--ha-dark-gray);
             padding: 4px 8px;
             border-radius: 4px;
             font-size: 12px;
             margin-left: 10px;
+            font-weight: 600;
         }}
         .email-list {{
             background: #f8f9fa;

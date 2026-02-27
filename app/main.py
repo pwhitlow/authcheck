@@ -20,6 +20,9 @@ app = FastAPI(
 # Set up Jinja2 templates
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+# Mount static files
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
 # Include routers
 app.include_router(upload.router)
 app.include_router(query.router)

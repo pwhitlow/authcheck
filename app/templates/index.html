@@ -3,11 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AuthCheck - User Authentication Verification</title>
+    <title>AuthCheck - User Authentication Verification | HudsonAlpha</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* HudsonAlpha Color Palette */
+        :root {
+            --ha-blue: #0081C6;
+            --ha-yellow: #FFE800;
+            --ha-cyan: #00AEEF;
+            --ha-light-gray: #E2E3E4;
+            --ha-medium-gray: #92949A;
+            --ha-dark-gray: #4D5452;
+            --ha-text: #4D5452;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -19,7 +30,7 @@
             background: #ffffff;
             min-height: 100vh;
             padding: 1.25rem;
-            color: #111013;
+            color: var(--ha-text);
         }
 
         .container {
@@ -29,29 +40,41 @@
             border-radius: 0.35rem;
             box-shadow: 6px 6px 9px rgba(0, 0, 0, 0.08);
             overflow: hidden;
-            border: 1px solid rgba(150, 144, 162, 0.15);
+            border: 1px solid var(--ha-light-gray);
         }
 
         .header {
-            background: #111013;
-            color: white;
-            padding: 2.5rem 2rem;
-            border-bottom: 1px solid rgba(150, 144, 162, 0.15);
+            background: white;
+            color: var(--ha-text);
+            padding: 2rem;
+            border-bottom: 3px solid var(--ha-yellow);
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .header-logo {
+            height: 60px;
+            width: auto;
+        }
+
+        .header-content {
+            flex: 1;
         }
 
         .header h1 {
             font-family: 'DM Sans', sans-serif;
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
-            letter-spacing: -0.045em;
+            letter-spacing: -0.03em;
             margin-bottom: 0.5rem;
             line-height: 1;
+            color: var(--ha-blue);
         }
 
         .header p {
             font-size: 1rem;
-            opacity: 0.8;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--ha-medium-gray);
         }
 
         .content {
@@ -92,8 +115,8 @@
         textarea:focus,
         select:focus {
             outline: none;
-            border-color: #dc2828;
-            box-shadow: 0 0 0 3px rgba(220, 40, 40, 0.1);
+            border-color: var(--ha-blue);
+            box-shadow: 0 0 0 3px rgba(0, 129, 198, 0.1);
         }
 
         .button-group {
@@ -105,7 +128,7 @@
         button {
             padding: 12px 24px;
             min-height: 3rem;
-            border: 2px solid #111013;
+            border: 2px solid var(--ha-blue);
             border-radius: 0.35rem;
             font-family: 'DM Sans', sans-serif;
             font-size: 14px;
@@ -116,24 +139,26 @@
         }
 
         .btn-primary {
-            background: #111013;
+            background: var(--ha-blue);
             color: white;
+            border-color: var(--ha-blue);
         }
 
         .btn-primary:hover {
-            background: #dc2828;
-            border-color: #dc2828;
+            background: var(--ha-cyan);
+            border-color: var(--ha-cyan);
             transform: translateY(-1px);
-            box-shadow: 6px 6px 12px rgba(220, 40, 40, 0.2);
+            box-shadow: 6px 6px 12px rgba(0, 129, 198, 0.2);
         }
 
         .btn-secondary {
             background: white;
-            color: #111013;
+            color: var(--ha-blue);
+            border-color: var(--ha-blue);
         }
 
         .btn-secondary:hover {
-            background: rgba(150, 144, 162, 0.06);
+            background: var(--ha-light-gray);
         }
 
         button:disabled {
@@ -163,8 +188,8 @@
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(150, 144, 162, 0.15);
-            border-top: 3px solid #dc2828;
+            border: 3px solid var(--ha-light-gray);
+            border-top: 3px solid var(--ha-yellow);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-right: 8px;
@@ -177,28 +202,31 @@
         }
 
         .footer {
-            background: rgba(150, 144, 162, 0.06);
+            background: var(--ha-light-gray);
             padding: 20px;
             text-align: center;
-            color: rgba(17, 16, 19, 0.6);
+            color: var(--ha-text);
             font-size: 12px;
-            border-top: 1px solid rgba(150, 144, 162, 0.15);
+            border-top: 3px solid var(--ha-yellow);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>AuthCheck</h1>
-            <p>User Authentication Verification Tool</p>
+            <img src="/static/images/hudsonalpha-logo.png" alt="HudsonAlpha Institute for Biotechnology" class="header-logo">
+            <div class="header-content">
+                <h1>AuthCheck</h1>
+                <p>User Authentication Verification Tool</p>
+            </div>
         </div>
 
         <div class="content">
 <div id="app">
     <div id="alert-container"></div>
 
-    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.75rem;">Compare Users Across All Systems</h2>
-    <p style="color: rgba(17, 16, 19, 0.6); margin-bottom: 20px;">
+    <h2 style="font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.75rem; color: var(--ha-blue);">Compare Users Across All Systems</h2>
+    <p style="color: var(--ha-medium-gray); margin-bottom: 20px;">
         Query all available authentication sources and compare which users exist in each system.
     </p>
 
@@ -223,18 +251,18 @@
         font-size: 14px;
         border-radius: 0.35rem;
         overflow: hidden;
-        border: 1px solid rgba(150, 144, 162, 0.15);
+        border: 1px solid var(--ha-light-gray);
     }
 
     .comparison-table th,
     .comparison-table td {
         padding: 12px;
         text-align: left;
-        border: 1px solid rgba(150, 144, 162, 0.15);
+        border: 1px solid var(--ha-light-gray);
     }
 
     .comparison-table th {
-        background: #111013;
+        background: var(--ha-blue);
         color: white;
         font-family: 'DM Sans', sans-serif;
         font-weight: 700;
@@ -244,34 +272,34 @@
     }
 
     .comparison-table tr:nth-child(even) {
-        background: rgba(150, 144, 162, 0.03);
+        background: rgba(226, 227, 228, 0.3);
     }
 
     .comparison-table tr:hover {
-        background: rgba(220, 40, 40, 0.05);
+        background: rgba(0, 129, 198, 0.08);
     }
 
     .user-cell {
         font-weight: 500;
-        color: #111013;
+        color: var(--ha-text);
         min-width: 200px;
         line-height: 1.6;
     }
 
     .user-link {
-        color: #dc2828;
+        color: var(--ha-blue);
         text-decoration: none;
         transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .user-link:hover {
-        color: #111013;
+        color: var(--ha-cyan);
         text-decoration: underline;
     }
 
     .grouped-badge {
-        background: #17a2b8;
-        color: white;
+        background: var(--ha-yellow);
+        color: var(--ha-text);
         padding: 2px 6px;
         border-radius: 3px;
         font-size: 10px;
@@ -281,13 +309,13 @@
     }
 
     .found {
-        color: #28a745;
+        color: var(--ha-blue);
         font-weight: bold;
         text-align: center;
     }
 
     .not-found {
-        color: #dc2828;
+        color: var(--ha-medium-gray);
         text-align: center;
     }
 
@@ -299,18 +327,20 @@
     }
 
     .stat-card {
-        background: #111013;
+        background: var(--ha-blue);
         color: white;
         padding: 1.5rem;
         border-radius: 0.35rem;
         text-align: center;
         box-shadow: 6px 6px 9px rgba(0, 0, 0, 0.08);
         transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        border-top: 4px solid var(--ha-yellow);
     }
 
     .stat-card:hover {
         transform: translateY(-2px);
-        box-shadow: 12px 12px 20px rgba(0, 0, 0, 0.15);
+        box-shadow: 12px 12px 20px rgba(0, 129, 198, 0.3);
+        background: var(--ha-cyan);
     }
 
     .stat-card h3 {
@@ -318,7 +348,7 @@
         font-family: 'DM Sans', sans-serif;
         font-size: 14px;
         font-weight: 700;
-        opacity: 0.8;
+        opacity: 0.9;
         letter-spacing: -0.02em;
     }
 
@@ -330,7 +360,8 @@
     }
 
     .stat-card.alt {
-        background: #dc2828;
+        background: var(--ha-cyan);
+        border-top-color: var(--ha-yellow);
     }
 </style>
 
@@ -553,7 +584,7 @@
         </div>
 
         <div class="footer">
-            <p>© 2025 AuthCheck - User Authentication Verification Tool</p>
+            <p>© 2025 HudsonAlpha Institute for Biotechnology | AuthCheck - User Authentication Verification Tool</p>
         </div>
     </div>
 </body>
